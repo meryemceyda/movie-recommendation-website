@@ -1,0 +1,63 @@
+Aksiyon|1|Matrix
+Aksiyon|2|Bay ve Bayan Smith
+Aksiyon|3|Wanted
+Aksiyon|4|Fetih 1453 
+Aksiyon|5|Sherlock Holmes: Gölge Oyunları (2011) 
+Aksiyon|6|Sherlock Holmes (2009)
+Komedi|7|G.O.R.A.
+Komedi|8|Ölümlü Dünya
+Komedi|9|Aile Arasında
+Komedi|10|A.R.O.G
+Komedi|11|S.D.B.D.A. Veyahut Yan Yana
+Dram|12|Esaretin Bedeli
+Dram|13|Prestij
+Dram|14|Yeşil Yol
+Dram|15|Akıl Oyunları
+Dram|16|Titanik
+Dram|17|Dövüş Kulübü
+Bilim Kurgu|18|Başlangıç
+Bilim Kurgu|19|Avatar
+Bilim Kurgu|20|Kelebek Etkisi
+Bilim Kurgu|21|Açlık Oyunları
+Bilim Kurgu|22|Örümcek-Adam
+Bilim Kurgu|23|Öldüren Sis
+Romantik|24|Aşk ve Gurur
+Romantik|25|Not Defteri
+Romantik|26|50 İlk Öpücük
+Romantik|27|Turist
+Romantik|28|Evim Sensin
+Romantik|29|Senden Bana Kalan
+Korku|30|Korku Seansı
+Korku|31|Son Durak
+Korku|32|Testere
+Korku|33|Paranormal Aktivite
+Korku|34|Evdeki Düşman
+Korku|35|Annabelle
+Yerli|36|Başka Bir Sen
+Yerli|37|Unutursam Fısılda
+Yerli|38|Babam ve Oğlum
+Yerli|39|Kaybedenler Kulübü
+Yerli|40|Eltilerin Savaşı
+Yerli|41|Issız Adam
+Aksiyon|42|John Wick
+Aksiyon|43|Hızlı ve Öfkeli
+Aksiyon|44|Transformers
+Komedi|45|Recep İvedik
+Komedi|46|Hababam Sınıfı
+Komedi|47|Evde Tek Başına
+Komedi|48|Yol Arkadaşım
+Dram|49|Godfather
+Dram|50|Black Swan
+Dram|51|Leon
+Bilim Kurgu|52|The Avengers
+Bilim Kurgu|53|Interstellar
+Bilim Kurgu|54|Harry Potter ve Felsefe Taşı
+Romantik|55|La La Land
+Romantik|56|Senden Önce Ben
+Romantik|57|Remember Me
+Korku|58|The Village
+Korku|59|It
+Korku|60|Terrifer
+Yerli|61|Vizontele
+Yerli|62|İncir Reçeli
+Yerli|63|Kelebeğin Rüyası

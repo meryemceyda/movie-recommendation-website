@@ -1,0 +1,63 @@
+1 | Matrix | 1999 | Aksiyon / Bilim Kurgu | Keanu Reeves | Gerçek sandığımız dünyanın bir simülasyon olduğunu öğrenen Neo, insanlığı kurtarmak için mücadele eder.
+2 | Bay ve Bayan Smith | 2005 | Aksiyon / Komedi | Brad Pitt, Angelina Jolie | Birbirinden habersiz iki kiralık katil olan evli çift, gerçekler ortaya çıkınca karşı karşıya gelir.
+3 | Wanted | 2008 | Aksiyon | James McAvoy, Angelina Jolie | Sıradan bir adam, gizli bir suikastçı topluluğunun parçası olduğunu öğrenir.
+4 | Fetih 1453 | 2012 | Aksiyon / Tarih | Devrim Evin, İbrahim Çelikkol | İstanbul’un fethini ve Fatih Sultan Mehmet’in stratejik mücadelesini konu alır.
+5 | Sherlock Holmes: Gölge Oyunları | 2011 | Aksiyon / Gizem | Robert Downey Jr., Jude Law | Holmes ve Watson, Avrupa’yı kaosa sürüklemek isteyen Moriarty’nin peşine düşer.
+6 | Sherlock Holmes | 2009 | Aksiyon / Gizem | Robert Downey Jr., Jude Law | Ünlü dedektif Holmes, Londra’yı tehdit eden karanlık bir planı çözmeye çalışır.
+7 | G.O.R.A | 2004 | Komedi / Bilim Kurgu | Cem Yılmaz | Uzaylılar tarafından kaçırılan Arif’in GORA gezegenindeki komik maceraları anlatılır.
+8 | Ölümlü Dünya | 2018 | Komedi | Ahmet Mümtaz Taylan | Görünüşte sıradan bir aile, aslında gizli bir suikastçı ailesidir.
+9 | Aile Arasında | 2017 | Komedi | Engin Günaydın, Demet Evgar | Sahte bir aile hikâyesi, beklenmedik olaylarla eğlenceli bir hale gelir.
+10 | A.R.O.G | 2008 | Komedi / Bilim Kurgu | Cem Yılmaz| Arif, bu kez zamanda geriye gönderilerek Taş Devri’nde hayatta kalmaya çalışır.
+11 | S.D.B.D.A. Veyahut Yan Yana | 2025 | Komedi | Haluk Bilginer, Feyyaz Yiğit| Felç geçirmiş zengin bir iş adamı olan Refik ile hayatı pek ciddiye almayan dobra adam Ferruh'un yolları kesişir. Bu iki zıt karakterin buluşması sıra dışı bir dostluğun doğuşu olur.
+12 | Esaretin Bedeli | 1994 | Dram | Tim Robbins, Morgan Freeman | Haksız yere hapse giren bir adamın sabır ve umut dolu hikâyesi.
+13 | Prestij | 2006 | Dram / Gizem | Hugh Jackman, Christian Bale | İki sihirbaz arasındaki rekabet, tehlikeli bir takıntıya dönüşür.
+14 | Yeşil Yol | 1999 | Dram / Fantastik | Tom Hanks, Michael Clarke Duncan | Doğaüstü güçlere sahip bir mahkûmun etkileyici hikâyesi anlatılır.
+15 | Akıl Oyunları | 2001 | Dram | Russell Crowe, Jennifer Connelly | Dahiyane bir matematikçinin zihinsel mücadelesi ve hayatı konu alınır.
+16 | Titanik | 1997 | Dram / Romantik | Leonardo DiCaprio, Kate Winslet | Titanik gemisinde filizlenen imkânsız bir aşk anlatılır.
+17 | Dövüş Kulübü | 1999 | Dram | Brad Pitt| Modern hayatın boşluğuna karşı çıkan gizli bir dövüş kulübü kurulur.
+18 | Başlangıç | 2010 | Bilim Kurgu / Aksiyon | Leonardo DiCaprio, Joseph Gordon-Levitt | Rüyaların içinde bilinçaltına fikir yerleştirme görevi tehlikeli bir hal alır.
+19 | Avatar | 2009 | Bilim Kurgu | Sam Worthington, Zoe Saldana | Pandora gezegeninde insanlarla Na’vi halkı arasında büyük bir çatışma yaşanır.
+20 | Kelebek Etkisi | 2004 | Bilim Kurgu / Dram | Ashton Kutcher, Amy Smart | Geçmişi değiştirme gücü, beklenmedik sonuçlara yol açar.
+21 | Açlık Oyunları | 2012 | Bilim Kurgu | Jennifer Lawrence, Josh Hutcherson | Gençler, hayatta kalmak için ölümcül bir arenada yarışmak zorunda kalır.
+22 | Örümcek-Adam | 2002 | Bilim Kurgu / Aksiyon | Tobey Maguire, Kirsten Dunst | Özel güçler kazanan genç bir adam, şehrini korumaya çalışır.
+23 | Öldüren Sis | 2007 | Korku / Bilim Kurgu | Thomas Jane, Marcia Gay Harden | Gizemli bir sis, kasabayı ölümcül yaratıklarla sarar.
+24 | Aşk ve Gurur | 2005 | Romantik / Dram | Keira Knightley, Matthew Macfadyen | Toplumsal kurallar ve gurur, aşkın önünde engel oluşturur.
+25 | Not Defteri | 2004 | Romantik / Dram | Ryan Gosling, Rachel McAdams | Yıllar geçse de unutulmayan büyük bir aşk hikâyesi.
+26 | 50 İlk Öpücük | 2004 | Romantik / Komedi | Adam Sandler, Drew Barrymore | Hafıza kaybı yaşayan bir kadına her gün yeniden âşık olmak gerekir.
+27 | Turist | 2010 | Romantik / Gizem | Johnny Depp, Angelina Jolie | Tatil için giden bir adam, gizemli bir kadının peşine takılır.
+28 | Evim Sensin | 2012 | Romantik / Dram | Özcan Deniz, Fahriye Evcen | Geçmiş travmalarla yüzleşen bir adamın aşk hikâyesi.
+29 | Senden Bana Kalan | 2015 | Romantik / Dram | Neslihan Atagül | Büyük bir miras ve duygusal bağlar etrafında gelişen olaylar anlatılır.
+30 | Korku Seansı | 2013 | Korku | Vera Farmiga, Patrick Wilson | Doğaüstü olaylarla mücadele eden bir ailenin hikâyesi.
+31 | Son Durak | 2000 | Korku / Gerilim | Devon Sawa, Ali Larter | Ölümden kaçan gençler, kaderlerinden kurtulamaz.
+32 | Testere | 2004 | Korku | Tobin Bell, Cary Elwes | İnsanları ahlaki sınavlardan geçiren ölümcül oyunlar başlar.
+33 | Paranormal Aktivite | 2007 | Korku | Katie Featherston, Micah Sloat | Evde yaşanan doğaüstü olaylar giderek artar.
+34 | Evdeki Düşman | 2016 | Korku | James McAvoy | Kimliklerle oynayan psikopat bir adam dehşet saçar.
+35 | Annabelle | 2014 | Korku | Annabelle Wallis, Ward Horton | Lanetli bir bebeğin etrafında gelişen korkunç olaylar.
+36 | Başka Bir Sen | 2015 | Yerli / Romantik | Tolga Çevik | Tesadüfi bir karşılaşma, hayatları değiştiren bir aşka dönüşür.
+37 | Unutursam Fısılda | 2014 | Yerli / Dram | Farah Zeynep Abdullah, Mehmet Günsür | Genç bir kızın müzikle kendini bulma hikâyesi.
+38 | Babam ve Oğlum | 2005 | Yerli / Dram | Çetin Tekindor, Fikret Kuşkan | Baba-oğul arasındaki kırgınlıklar ve sevgi anlatılır.
+39 | Kaybedenler Kulübü | 2011 | Yerli / Dram | Nejat İşler, Yiğit Özşener | Hayata aykırı yaşayan iki radyo programcısının hikâyesi.
+40 | Eltilerin Savaşı | 2020 | Yerli / Komedi | Gupse Özay, Merve Dizdar | İki eltinin rekabeti komik olaylara yol açar.
+41 | Issız Adam | 2008 | Yerli / Romantik | Cemal Hünal, Melis Birkan | Bağlanma korkusu yaşayan bir adamın aşk hikâyesi.
+42 | John Wick | 2014 | Aksiyon | Keanu Reeves, Ian McShane | Eski bir tetikçi, intikam almak için tekrar sahalara döner.
+43 | Hızlı ve Öfkeli | 2001 | Aksiyon | Vin Diesel, Paul Walker | Sokak yarışları ve suç dünyası iç içe geçer.
+44 | Transformers | 2007 | Aksiyon / Bilim Kurgu | Shia LaBeouf, Megan Fox | Dev robotlar dünyayı kurtarmak için savaşır.
+45 | Recep İvedik | 2008 | Komedi | Şahan Gökbakar | Toplumla uyumsuz Recep’in eğlenceli maceraları.
+46 | Hababam Sınıfı | 1975 | Komedi | Kemal Sunal, Münir Özkul | Yaramaz bir sınıfın unutulmaz hikâyesi.
+47 | Evde Tek Başına | 1990 | Komedi / Aile | Macaulay Culkin, Joe Pesci | Evde kalan bir çocuk, hırsızlara karşı evini savunur.
+48 | Yol Arkadaşım | 2017 | Komedi | Oğuzhan Koç, İbrahim Büyükak | Yolculuk sırasında gelişen komik olaylar.
+49 | Godfather | 1972 | Dram / Suç | Marlon Brando, Al Pacino | Mafya dünyasının efsanevi aile hikâyesi.
+50 | Black Swan | 2010 | Dram / Gerilim | Natalie Portman| Bir balerinin psikolojik çöküşü anlatılır.
+51 | Leon | 1994 | Dram / Aksiyon | Jean Reno, Natalie Portman | Bir tetikçi ve küçük bir kız arasında özel bir bağ kurulur.
+52 | The Avengers | 2012 | Bilim Kurgu / Aksiyon | Robert Downey Jr., Chris Evans | Süper kahramanlar dünyayı kurtarmak için birleşir.
+53 | Interstellar | 2014 | Bilim Kurgu / Dram | Matthew McConaughey, Anne Hathaway | Uzayda insanlığın geleceği aranır.
+54 | Harry Potter ve Felsefe Taşı | 2001 | Fantastik | Daniel Radcliffe, Emma Watson | Genç bir büyücünün Hogwarts’taki ilk yılı anlatılır.
+55 | La La Land | 2016 | Romantik / Müzikal | Ryan Gosling, Emma Stone | Hayaller ve aşk arasında kalan iki insan.
+56 | Senden Önce Ben | 2016 | Romantik / Dram | Emilia Clarke, Sam Claflin | Hayatı değiştiren bir sevgi hikâyesi.
+57 | Remember Me | 2010 | Romantik / Dram | Robert Pattinson, Emilie de Ravin | Aşk ve geçmiş travmalar iç içe geçer.
+58 | The Village | 2004 | Korku / Gizem | Joaquin Phoenix, Bryce Dallas Howard | İzole bir köyde korku dolu sırlar vardır.
+59 | It | 2017 | Korku | Bill Skarsgård, Finn Wolfhard | Korkunç bir palyaço çocukları hedef alır.
+60 | Terrifer | 2016 | Korku | David Howard Thornton | Acımasız bir palyaço dehşet saçar.
+61 | Vizontele | 2001 | Yerli / Komedi | Yılmaz Erdoğan, Demet Akbağ | Televizyonun kasabaya gelişi hayatları değiştirir.
+62 | İncir Reçeli | 2011 | Yerli / Dram | Halil Sezai, Melike Güner | Hüzünlü bir aşk hikâyesi anlatılır.
+63 | Kelebeğin Rüyası | 2013 | Yerli / Dram | Kıvanç Tatlıtuğ, Mert Fırat | Genç şairlerin umut ve hayal dolu hikâyesi.
