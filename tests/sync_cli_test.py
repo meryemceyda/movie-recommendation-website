@@ -29,6 +29,15 @@ foreach ($db->query('SELECT * FROM movies')->fetchAll() as $movie) {
         with sqlite3.connect(environment['APP_DB_PATH']) as db:
             return {table: db.execute('SELECT * FROM ' + table).fetchall() for table in ['movies', 'users', 'user_movies', 'movie_posters']}
     before = snapshot()
+    backed_up = subprocess.run(['php','bin/backup-db.php'],cwd=ROOT,env=environment,capture_output=True,text=True,check=True)
+    backup = Path(backed_up.stdout.split('Consistent SQLite backup created: ',1)[1].splitlines()[0])
+    assert backup.parent.resolve()==(ROOT/'var'/'backups').resolve()
+    try:
+        with sqlite3.connect(backup) as copy:
+            saved={table:copy.execute('SELECT * FROM '+table).fetchall() for table in before}
+        assert saved==before, 'Consistent backup did not preserve original data'
+    finally:
+        backup.unlink()
     def cli(*args):
         return subprocess.run(['php', 'bin/sync-posters.php', *args], cwd=ROOT, env=environment, capture_output=True, text=True, timeout=15)
     result = cli('--json', '--max-wait=0')

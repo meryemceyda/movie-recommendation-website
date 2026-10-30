@@ -82,6 +82,8 @@ def run(base):
     assert status == 200 and "Film listeniz güncellendi" in html
     assert "1 film" in alice.request("?page=lists")[1]
     assert "0 film" in bob.request("?page=lists")[1]
+    assert '0 film' in bob.request('?page=lists&user_id=1')[1]
+    assert bob.request(data={'action':'save','csrf':token,'movie_id':1,'list':'favorites','operation':'add'})[0] == 403
     assert "Matrix" not in bob.request("?page=lists")[1]
     # Posting with Bob's session cannot remove Alice's entry.
     bob.request(data={"action": "save", "csrf": bob.token("?id=1"), "movie_id": 1,
@@ -96,6 +98,15 @@ def run(base):
     status, html, _ = alice.request(data={"action": "login", "csrf": alice.token(),
         "email": "alice@example.com", "password": "secure-password-123"})
     assert status == 200 and "1 film" in html
+    # Recommendations use only the signed-in account; watched titles are excluded.
+    token = alice.token('?id=1')
+    alice.request(data={'action':'save','csrf':token,'movie_id':1,'list':'watched','operation':'add'})
+    status, recommendations, _ = alice.request()
+    assert status == 200 and 'recommendation-reason' in recommendations
+    assert 'poster.php?id=1&amp;' not in recommendations
+    assert alice.request('?all=1&q=%27%20OR%201%3D1--')[1].count('movie-poster-card') == 0
+    injected = alice.request('?all=1&q=%3Cscript%3Ealert(1)%3C%2Fscript%3E')[1]
+    assert '<script>alert(1)</script>' not in injected and '&lt;script&gt;' in injected
     # The configured public root must not expose credentials or SQLite files.
     for path in ["/var/app.sqlite", "/app/schema.sql", "/../var/app.sqlite"]:
         try:
@@ -109,6 +120,8 @@ def run(base):
 if __name__ == "__main__":
     with tempfile.TemporaryDirectory() as temp:
         environment = dict(os.environ, APP_DB_PATH=str(Path(temp) / "test.sqlite"))
+        environment['APP_ENV'] = 'development'
+        environment['APP_HTTPS'] = '0'
         environment.pop('TMDB_READ_ACCESS_TOKEN', None)
         environment.pop('TMDB_API_KEY', None)
         subprocess.run(["php", "bin/init-db.php"], cwd=ROOT, env=environment, check=True)

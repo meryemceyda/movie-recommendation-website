@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+ini_set('display_errors', '0');
 // Public images do not need a user session and must not acquire its file lock.
 require dirname(__DIR__) . '/app/database.php';
 require dirname(__DIR__) . '/app/movies.php';

@@ -1,32 +1,27 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__ . '/auth-throttle.php';
 
 function authenticate(PDO $db, string $action, string $name, string $email, string $password): ?string
 {
     $email = strtolower(trim($email));
     $name = trim($name);
+    if (!in_array($action, ['register', 'login'], true)) return 'Geçersiz işlem.';
+    $ip = (string) ($_SERVER['REMOTE_ADDR'] ?? 'cli');
+    $wait = reserve_auth_attempt($db, $action, $email, $ip);
+    if ($wait > 0) {
+        http_response_code(429);
+        header('Retry-After: ' . $wait);
+        return 'Çok fazla deneme yapıldı. 15 dakika içinde tekrar deneyin.';
+    }
     if (!filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($email) > 254) {
         return 'Geçerli bir e-posta adresi girin.';
     }
-    // Limit both an address and a source IP, including attempts from new sessions.
-    $buckets = [hash('sha256', 'email:' . $email), hash('sha256', 'ip:' . ($_SERVER['REMOTE_ADDR'] ?? 'cli'))];
-    $now = time();
-    $db->prepare('DELETE FROM auth_attempts WHERE expires_at <= ?')->execute([$now]);
-    $attempt = $db->prepare('SELECT attempts FROM auth_attempts WHERE bucket = ?');
-    foreach ($buckets as $bucket) {
-        $attempt->execute([$bucket]);
-        if ((int) $attempt->fetchColumn() >= 10) {
-            http_response_code(429);
-            return 'Çok fazla deneme yapıldı. 15 dakika sonra tekrar deneyin.';
-        }
-    }
-    $increment = $db->prepare('INSERT INTO auth_attempts (bucket, attempts, expires_at) VALUES (?, 1, ?) ON CONFLICT(bucket) DO UPDATE SET attempts = attempts + 1');
-    foreach ($buckets as $bucket) $increment->execute([$bucket, $now + 900]);
-
     if ($action === 'register') {
         if ($name === '' || strlen($name) > 100) return 'Adınız 1–100 bayt uzunluğunda olmalı.';
-        if (strlen($password) < 10 || strlen($password) > 72 || str_contains($password, "\0")) {
-            return 'Parolanız 10–72 bayt uzunluğunda olmalı.';
+        $characters = preg_match_all('/./us', $password);
+        if ($characters === false || $characters < 15 || strlen($password) > 72 || str_contains($password, "\0")) {
+            return 'Parolanız en az 15 karakter, en fazla 72 bayt olmalı.';
         }
         try {
             $statement = $db->prepare('INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)');
@@ -50,7 +45,8 @@ function authenticate(PDO $db, string $action, string $name, string $email, stri
         }
     }
     session_regenerate_id(true);
-    $_SESSION = ['user_id' => $userId, 'csrf' => bin2hex(random_bytes(32)), 'last_active' => time()];
+    if ($action === 'login') $db->prepare('DELETE FROM auth_attempts WHERE bucket = ?')->execute([auth_pair_bucket($email, $ip)]);
+    $_SESSION = ['user_id' => $userId, 'csrf' => bin2hex(random_bytes(32)), 'last_active' => time(), 'auth_started_at' => time()];
     return null;
 }
 

@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 require_once __DIR__ . '/poster-migrations.php';
+require_once __DIR__ . '/security.php';
 
 function database(): PDO
 {
@@ -13,10 +14,17 @@ function database(): PDO
     if (!is_dir($directory) && !mkdir($directory, 0700, true) && !is_dir($directory)) {
         throw new RuntimeException('Database directory could not be created.');
     }
-    $db = new PDO('sqlite:' . $path, null, null, [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-    ]);
+    if ($path !== ':memory:') {
+        assert_private_database_directory($directory);
+        if (realpath($path) !== false) assert_private_database_directory(dirname(realpath($path)));
+    }
+    $oldMask = umask(0077);
+    try {
+        $db = new PDO('sqlite:' . $path, null, null, [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+        ]);
+    } finally { umask($oldMask); }
     $db->exec('PRAGMA foreign_keys = ON');
     $db->exec('PRAGMA busy_timeout = 5000');
     // Safe for already populated databases: add poster cache tables only.

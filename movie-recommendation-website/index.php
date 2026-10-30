@@ -4,46 +4,11 @@ require dirname(__DIR__) . '/app/bootstrap.php';
 
 $db = database();
 $user = current_user($db);
-$page = input($_GET, 'page') ?: 'catalog';
-$error = '';
-$email = '';
-$name = '';
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (!hash_equals($_SESSION['csrf'], input($_POST, 'csrf'))) {
-        http_response_code(403);
-        exit('İstek doğrulanamadı. Sayfayı yenileyip tekrar deneyin.');
-    }
-    $action = input($_POST, 'action');
-    if ($action === 'logout') logout();
-    if ($action === 'register' || $action === 'login') {
-        $page = $action;
-        $email = input($_POST, 'email');
-        $name = input($_POST, 'name');
-        $error = authenticate($db, $action, $name, $email, input($_POST, 'password')) ?? '';
-        if ($error === '') {
-            flash($action === 'register' ? 'Hesabınız oluşturuldu.' : 'Giriş yapıldı.');
-            redirect('page=lists');
-        }
-    } elseif ($action === 'save') {
-        if (!$user) {
-            flash('Film listelerinizi düzenlemek için giriş yapın.');
-            redirect('page=login');
-        }
-        $id = filter_var(input($_POST, 'movie_id'), FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
-        if (!$id || !save_movie($db, (int) $user['id'], $id, input($_POST, 'list'), input($_POST, 'operation'))) {
-            http_response_code(400);
-            exit('Geçersiz film veya liste işlemi.');
-        }
-        flash('Film listeniz güncellendi.');
-        $returnList = input($_POST, 'return_list');
-        if (isset(LISTS[$returnList])) redirect('page=lists&list=' . urlencode($returnList));
-        redirect('id=' . $id);
-    } else {
-        http_response_code(400);
-        exit('Geçersiz işlem.');
-    }
-}
+$state = handle_http_action($db, $user);
+$page = $state['page'];
+$error = $state['error'];
+$email = $state['email'];
+$name = $state['name'];
 
 if (!in_array($page, ['catalog', 'lists', 'login', 'register'], true)) {
     http_response_code(404);
@@ -75,8 +40,11 @@ if (array_key_exists('id', $_GET)) {
     }
 }
 $featured = $page === 'catalog' && !$all && $genre === '' && $search === '';
-$movies = ($page === 'catalog' || $page === 'lists') && !$movie && !$notFound
-    ? list_movies($db, $user ? (int) $user['id'] : null, $list, $genre, $search, $featured) : [];
+$movies = [];
+if (($page === 'catalog' || $page === 'lists') && !$movie && !$notFound) {
+    $movies = $featured ? recommendations_for_user($db, $user ? (int)$user['id'] : null)
+        : list_movies($db, $user ? (int)$user['id'] : null, $list, $genre, $search, false);
+}
 $memberships = [];
 if ($user) {
     $statement = $db->prepare('SELECT movie_id, list FROM user_movies WHERE user_id = ?');
@@ -92,23 +60,6 @@ $title = $movie ? $movie['title'] : match ($page) {
     default => $featured ? 'Önerilenler' : 'Filmler',
 };
 
-function list_actions(int $movieId, array $memberships, string $returnList = ''): void
-{
-    echo '<div class="actions">';
-    foreach (LISTS as $key => $label) {
-        $saved = isset($memberships[$movieId][$key]);
-        echo '<form method="post" action="index.php">';
-        csrf_field();
-        echo '<input type="hidden" name="action" value="save">';
-        echo '<input type="hidden" name="movie_id" value="' . $movieId . '">';
-        echo '<input type="hidden" name="list" value="' . e($key) . '">';
-        echo '<input type="hidden" name="return_list" value="' . e($returnList) . '">';
-        echo '<input type="hidden" name="operation" value="' . ($saved ? 'remove' : 'add') . '">';
-        $text = $saved ? $label . ' listesinden çıkar' : $label . ' listesine ekle';
-        echo '<button type="submit">' . e($text) . '</button></form>';
-    }
-    echo '</div>';
-}
 ?>
 <!DOCTYPE html>
 <html lang="tr">
@@ -148,8 +99,8 @@ function list_actions(int $movieId, array $memberships, string $returnList = '')
           <label for="name">Adınız</label><input id="name" name="name" value="<?= e($name) ?>" maxlength="100" autocomplete="name" required>
         <?php endif; ?>
         <label for="email">E-posta</label><input id="email" type="email" name="email" value="<?= e($email) ?>" maxlength="254" autocomplete="email" required>
-        <label for="password">Parola</label><input id="password" type="password" name="password" autocomplete="<?= $page === 'register' ? 'new-password' : 'current-password' ?>" <?= $page === 'register' ? 'minlength="10"' : '' ?> maxlength="72" required>
-        <?php if ($page === 'register'): ?><p class="muted">10–72 bayt kullanın. Türkçe karakterler birden fazla bayt yer kaplayabilir.</p><?php endif; ?>
+        <label for="password">Parola</label><input id="password" type="password" name="password" autocomplete="<?= $page === 'register' ? 'new-password' : 'current-password' ?>" <?= $page === 'register' ? 'minlength="15"' : '' ?> maxlength="72" required>
+        <?php if ($page === 'register'): ?><p class="muted">En az 15 karakter, en fazla 72 bayt kullanın. Türkçe karakterler birden fazla bayt yer kaplayabilir.</p><?php endif; ?>
         <button type="submit"><?= $page === 'register' ? 'Kayıt ol' : 'Giriş yap' ?></button>
       </form>
       <p><a href="index.php?page=<?= $page === 'register' ? 'login' : 'register' ?>"><?= $page === 'register' ? 'Zaten hesabım var' : 'Hesap oluştur' ?></a></p>
@@ -179,7 +130,7 @@ function list_actions(int $movieId, array $memberships, string $returnList = '')
         <nav class="tabs" aria-label="Film listeleri">
         <?php foreach (LISTS as $key => $label): ?><a <?= $list === $key ? 'aria-current="page" class="active"' : '' ?> href="index.php?page=lists&amp;list=<?= e($key) ?>"><?= e($label) ?></a><?php endforeach; ?>
         </nav>
-      <?php elseif ($featured): ?><p class="muted">Önceden seçilmiş 6 film. Tüm kataloğu görmek için “Tüm filmler” bağlantısını kullanın.</p><?php endif; ?>
+      <?php elseif ($featured): ?><p class="muted"><?= $user ? 'Favorilerin ve izleme geçmişine göre öneriler. Tercih verisi yoksa farklı türlerden bir başlangıç seçkisi sunulur.' : 'Farklı türlerden başlangıç önerileri. Kendi önerilerini oluşturmak için giriş yapıp favori veya izlenen film ekle.' ?></p><?php endif; ?>
       <form class="filters" method="get" action="index.php">
         <input type="hidden" name="page" value="<?= e($page) ?>">
         <input type="hidden" name="all" value="1">
@@ -198,6 +149,7 @@ function list_actions(int $movieId, array $memberships, string $returnList = '')
         <article class="film-karti">
           <?php render_poster($item); ?>
           <h2><?= e($item['title']) ?></h2>
+          <?php if (isset($item['recommendation_reason'])): ?><p class="recommendation-reason"><?= e($item['recommendation_reason']) ?></p><?php endif; ?>
           <p><?= (int) $item['year'] ?> · <?= e(movie_genres($db, (int) $item['id'])) ?></p>
           <?php if (isset($memberships[(int) $item['id']])): ?><p><?= e(implode(' · ', array_map(fn($key) => LISTS[$key], array_keys($memberships[(int) $item['id']])))) ?></p><?php endif; ?>
           <a href="index.php?<?= e(http_build_query(['id' => $item['id'], 'page' => $page, 'list' => $list, 'kategori' => $genre, 'q' => $search, 'all' => $all ? '1' : '0'])) ?>">Detay ve liste işlemleri</a>

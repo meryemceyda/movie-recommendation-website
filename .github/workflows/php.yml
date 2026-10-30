@@ -16,6 +16,14 @@ jobs:
         run: find app bin tests movie-recommendation-website -name '*.php' -print0 | xargs -0 -n1 php -l
       - name: Domain tests
         run: php tests/domain.php
+      - name: Security regressions
+        run: php tests/security.php
+      - name: Concurrent authentication limiter
+        run: python3 tests/throttle_concurrency.py
+      - name: Content-based recommendations
+        run: php tests/recommendations.php
+      - name: Production transport configuration
+        run: python3 tests/deployment_test.py
       - name: Poster integration tests (offline fixtures)
         run: php tests/posters.php
       - name: TMDB HTTP retries and safe diagnostics
