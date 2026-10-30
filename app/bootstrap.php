@@ -24,7 +24,7 @@ header('Content-Type: text/html; charset=UTF-8');
 header('Cache-Control: no-store');
 header('X-Content-Type-Options: nosniff');
 header('Referrer-Policy: same-origin');
-header("Content-Security-Policy: default-src 'self'; style-src 'self'; img-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'");
+header("Content-Security-Policy: default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' https://image.tmdb.org; form-action 'self'; frame-ancestors 'none'; base-uri 'none'");
 
 set_exception_handler(function (Throwable $e): void {
     error_log((string) $e);
@@ -71,3 +71,4 @@ const LISTS = ['watchlist' => 'İzlenecekler', 'watched' => 'İzlendi', 'favorit
 
 require __DIR__ . '/auth.php';
 require __DIR__ . '/movies.php';
+require __DIR__ . '/posters.php';
