@@ -33,49 +33,74 @@ function poster_image_config(PDO $db, callable $request, int $now): array
     if ($cached !== null) return json_decode($cached, true, 512, JSON_THROW_ON_ERROR);
     $images = $request('configuration', [])['images'] ?? [];
     // Only TMDB's documented HTTPS CDN is trusted, even if upstream data changes.
-    if (($images['secure_base_url'] ?? '') !== 'https://image.tmdb.org/t/p/') throw new TmdbFailure();
+    if (($images['secure_base_url'] ?? '') !== 'https://image.tmdb.org/t/p/') throw new TmdbFailure(kind: 'invalid_configuration', httpStatus: 200, message: 'TMDB configuration has an unsupported secure image base.', endpoint: 'configuration');
     $sizes = $images['poster_sizes'] ?? [];
-    if (!is_array($sizes)) throw new TmdbFailure();
+    if (!is_array($sizes)) throw new TmdbFailure(kind: 'invalid_configuration', httpStatus: 200, message: 'TMDB configuration has no poster sizes array.', endpoint: 'configuration');
     $card = in_array('w500', $sizes, true) ? 'w500' : (in_array('original', $sizes, true) ? 'original' : null);
     $detail = in_array('w780', $sizes, true) ? 'w780' : $card;
-    if ($card === null) throw new TmdbFailure();
+    if ($card === null) throw new TmdbFailure(kind: 'invalid_configuration', httpStatus: 200, message: 'TMDB configuration has no supported poster size.', endpoint: 'configuration');
     $config = ['image_base' => $images['secure_base_url'], 'card_size' => $card, 'detail_size' => $detail];
     poster_service_set($db, 'configuration', json_encode($config, JSON_THROW_ON_ERROR), $now + 86400);
     return $config;
 }
 
-/** Lazy, per-movie lookup. Injectable transport/clock keep tests offline. */
-function movie_poster(PDO $db, array $movie, ?callable $request = null, ?int $clock = null): array
+/** Lazy lookup; --retry-errors only bypasses failure-cache TTL, never a rate limit. */
+function movie_poster(PDO $db, array $movie, ?callable $request = null, ?int $clock = null, bool $retryErrors = false): array
 {
     $now = $clock ?? time();
     $id = (int) $movie['id'];
     $key = poster_source_key($movie);
     $cached = poster_cached($db, $id);
     $sameSource = $cached && hash_equals($cached['source_key'], $key);
-    if ($sameSource && (int) $cached['next_check'] > $now) return $cached;
+    $retryFailure = $retryErrors && $cached && ($cached['status'] === 'error' || !empty($cached['last_error']));
+    if ($sameSource && (int) $cached['next_check'] > $now && !$retryFailure) return $cached;
     $fallback = $sameSource ? $cached : ['status' => 'pending'];
     if ($request === null && !tmdb_configured()) return $sameSource ? $cached : ['status' => 'unconfigured'];
-    if (poster_service_get($db, 'cooldown', $now) !== null) return $fallback;
+    $cooldown = poster_service_get($db, 'cooldown', $now);
+    if ($cooldown === '1' && $retryErrors) {
+        // Legacy sentinel contains no cause/Retry-After; explicit recovery probes once.
+        $db->exec("DELETE FROM poster_service WHERE name = 'cooldown'");
+        $cooldown = null;
+    }
+    if ($cooldown !== null) {
+        $state = json_decode($cooldown, true);
+        if (is_array($state) && ($state['diagnostic']['kind'] ?? '') === 'authentication_error' && ($state['credential_hash'] ?? '') !== tmdb_credential_hash()) {
+            $db->exec("DELETE FROM poster_service WHERE name = 'cooldown'");
+        } else {
+            $diagnostic = is_array($state) ? ($state['diagnostic'] ?? []) : ['kind' => 'legacy_cooldown', 'message' => 'Previous version did not retain the cooldown cause; use --retry-errors to probe again.'];
+            $fallback['last_error'] = json_encode($diagnostic, JSON_INVALID_UTF8_SUBSTITUTE | JSON_THROW_ON_ERROR);
+            $fallback['deferred'] = true;
+            if (($fallback['status'] ?? '') !== 'matched') $fallback['status'] = 'error';
+            $fallback['next_check'] = is_array($state) ? ($state['retry_at'] ?? $now + 60) : $now + 60;
+            return $fallback;
+        }
+    }
     $request ??= 'tmdb_request';
     $db->prepare('INSERT OR IGNORE INTO movie_posters (movie_id) VALUES (?)')->execute([$id]);
-    // Never keep a SQLite transaction open while waiting for the network.
-    $lease = $db->prepare('UPDATE movie_posters SET lease_until = ? WHERE movie_id = ? AND lease_until <= ? AND (source_key <> ? OR next_check <= ?)');
-    $lease->execute([$now + 120, $id, $now, $key, $now]);
+    $leaseUntil = $now + 900;
+    // No database transaction is held during API requests/backoff.
+    $lease = $db->prepare('UPDATE movie_posters SET lease_until = ? WHERE movie_id = ? AND lease_until <= ? AND (source_key <> ? OR next_check <= ? OR CAST(? AS INTEGER) = 1)');
+    $lease->execute([$leaseUntil, $id, $now, $key, $now, (int) $retryFailure]);
     if ($lease->rowCount() !== 1) return $fallback;
     try {
         $resolved = resolve_tmdb_poster($movie, $request);
         $config = $resolved['status'] === 'matched' ? poster_image_config($db, $request, $now) : [];
-        $next = $now + ($resolved['status'] === 'matched' ? 7 * 86400 : 86400);
-        $db->prepare('UPDATE movie_posters SET source_key = ?, tmdb_id = ?, poster_path = ?, status = ?, next_check = ?, checked_at = ?, lease_until = 0, image_base = ?, card_size = ?, detail_size = ? WHERE movie_id = ? AND lease_until = ?')
-            ->execute([$key, $resolved['tmdb_id'] ?? null, $resolved['poster_path'] ?? null, $resolved['status'], $next, $now, $config['image_base'] ?? null, $config['card_size'] ?? null, $config['detail_size'] ?? null, $id, $now + 120]);
+        $finishedAt = $clock ?? time();
+        $next = $finishedAt + ($resolved['status'] === 'matched' ? 7 * 86400 : 86400);
+        $db->prepare('UPDATE movie_posters SET source_key = ?, tmdb_id = ?, poster_path = ?, status = ?, next_check = ?, checked_at = ?, lease_until = 0, image_base = ?, card_size = ?, detail_size = ?, last_error = NULL, match_reason = ? WHERE movie_id = ? AND lease_until = ?')
+            ->execute([$key, $resolved['tmdb_id'] ?? null, $resolved['poster_path'] ?? null, $resolved['status'], $next, $finishedAt, $config['image_base'] ?? null, $config['card_size'] ?? null, $config['detail_size'] ?? null, $resolved['reason'] ?? null, $id, $leaseUntil]);
     } catch (Throwable $error) {
-        $retry = $error instanceof TmdbFailure ? $error->retryAfter : 3600;
-        if ($error instanceof TmdbFailure && $error->global) poster_service_set($db, 'cooldown', '1', $now + $retry);
-        // Serve last known good posters during temporary outages, but never after a title/year change.
+        $failure = $error instanceof TmdbFailure ? $error : new TmdbFailure(kind: 'internal_error', message: get_class($error) . ': ' . $error->getMessage());
+        $retry = $failure->retryAfter;
+        $failedAt = $clock ?? time();
+        $diagnostic = json_encode($failure->diagnostic(), JSON_INVALID_UTF8_SUBSTITUTE | JSON_THROW_ON_ERROR);
+        if ($failure->global) {
+            poster_service_set($db, 'cooldown', json_encode(['diagnostic' => $failure->diagnostic(), 'retry_at' => $failedAt + $retry, 'credential_hash' => tmdb_credential_hash()], JSON_INVALID_UTF8_SUBSTITUTE | JSON_THROW_ON_ERROR), $failedAt + $retry);
+        }
         if ($sameSource && $cached['status'] === 'matched') {
-            $db->prepare('UPDATE movie_posters SET next_check = ?, lease_until = 0 WHERE movie_id = ? AND lease_until = ?')->execute([$now + $retry, $id, $now + 120]);
+            $db->prepare('UPDATE movie_posters SET next_check = ?, lease_until = 0, last_error = ? WHERE movie_id = ? AND lease_until = ?')->execute([$failedAt + $retry, $diagnostic, $id, $leaseUntil]);
         } else {
-            $db->prepare("UPDATE movie_posters SET source_key = ?, status = 'error', tmdb_id = NULL, poster_path = NULL, next_check = ?, checked_at = ?, lease_until = 0 WHERE movie_id = ? AND lease_until = ?")->execute([$key, $now + $retry, $now, $id, $now + 120]);
+            $db->prepare("UPDATE movie_posters SET source_key = ?, status = 'error', tmdb_id = NULL, poster_path = NULL, next_check = ?, checked_at = ?, lease_until = 0, last_error = ?, match_reason = NULL WHERE movie_id = ? AND lease_until = ?")->execute([$key, $failedAt + $retry, $failedAt, $diagnostic, $id, $leaseUntil]);
         }
     }
     return poster_cached($db, $id) ?? $fallback;

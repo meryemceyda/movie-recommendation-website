@@ -98,8 +98,8 @@ Yeni kurulumlarda önce normal `php bin/init-db.php` komutunu çalıştırın. V
 - Her kart/detay afişi yerel `poster.php?id=…&size=card|detail` adresini kullanır. **Anahtar yalnızca sunucuda kalır.** Bu adres API isteğini sunucuda yapar, başarılı olduğunda TMDB CDN görseline yönlendirir.
 - Filmin Türkçe adı ve varsa orijinal ad arama takma adlarıyla TMDB araması yapılır. **Ad ve çıkış yılı birlikte doğrulanır**, detay yanıtında da yeniden kontrol edilir. Noktalama/Türkçe harf normalizasyonu yapılır; yıl farkı, birden fazla güçlü aday veya kesilmiş arama sonuçlarında rastgele afiş seçilmez. Takma adlar TMDB kimliği/afiş URL'si içermez ve yıl kontrolünü atlamaz.
 - Görsellerde filmin orijinal dili tercih edilir; yoksa Türkçe, İngilizce veya dil bağımsız afiş kullanılabilir. CDN tabanı ve desteklenen boyutlar `/configuration` üzerinden alınır. Kartlarda `w500`, detayda `w780` kullanılır (desteklenmiyorsa doğrulanmış alternatif).
-- Pozitif eşleşmeler 7 gün, eşleşmeyenler 1 gün, geçici hatalar genellikle 1 saat önbelleğe alınır. Süre dolunca **bir sonraki afiş isteği** otomatik yeniler. İlk ziyarette yalnızca görünür kartlar `loading="lazy"` ile yüklenir; açılmayan filmler ilk görüntülendiklerinde çözülür. Sayfa HTML'i TMDB araması beklemez.
-- Aynı film için eşzamanlı aramaları 120 saniyelik lease sınırlar. TMDB `429` yanıtında `Retry-After` dikkate alınarak tüm aramalara ara verilir; geçersiz anahtar için 1 saat beklenir. İsteklerde bağlantı/toplam süre ve yanıt boyutu sınırları vardır.
+- Pozitif eşleşmeler 7 gün, eşleşmeyenler 1 gün, geçici hatalar genellikle 60 saniye önbelleğe alınır. Süre dolunca **bir sonraki afiş isteği** otomatik yeniler. İlk ziyarette yalnızca görünür kartlar `loading="lazy"` ile yüklenir; açılmayan filmler ilk görüntülendiklerinde çözülür. Sayfa HTML'i TMDB araması beklemez.
+- Aynı film için eşzamanlı aramaları 900 saniyelik lease sınırlar. TMDB `429` yanıtında `Retry-After` dikkate alınarak tüm aramalara ara verilir; geçersiz anahtar için 1 saat beklenir. İsteklerde bağlantı/toplam süre ve yanıt boyutu sınırları vardır.
 - Anahtar yoksa, TMDB kapalıysa, afiş bulunamazsa veya CDN görseli tarayıcıda yüklenemezse yerel varsayılan SVG gösterilir. Geçici hatalarda daha önce doğrulanmış afiş korunur. Ad/yıl değiştiğinde eski eşleşme geçersizleşir. Başarılı yönlendirmeler tarayıcıda 1 saat, varsayılanlar 30 saniye önbelleğe alınır; yapılandırmadan sonra gerekirse sayfayı zorla yenileyin.
 - Görseller 2:3 çerçevede **kırpılmadan ve esnetilmeden** gösterilir. Detay çerçevesi 420 CSS piksele kadar büyür; mobilde kullanılabilir genişliği aşmaz.
 
@@ -109,7 +109,7 @@ Yeni kurulumlarda önce normal `php bin/init-db.php` komutunu çalıştırın. V
 php bin/sync-posters.php
 ```
 
-Bu komut zorunlu değildir ve her yüklemede çalıştırılmaz. Aynı ortam değişkenlerini kullanır; önbelleğe saygı gösterir, 63 filmin durumunu raporlar. `matched`, `not_found`, `ambiguous`, `mismatch`, `no_poster`, `error`, `pending` durumları görülebilir. Hata/eksik yapılandırmada sıfır dışı çıkış kodu üretir. Dilerseniz sunucunuzun cron görevine ekleyebilirsiniz; normal sitede afişler ziyaretle otomatik tamamlanır ve yenilenir.
+Bu komut zorunlu değildir ve her yüklemede çalıştırılmaz. Aynı ortam değişkenlerini kullanır; önbelleğe saygı gösterir, 63 filmin durumunu raporlar. `matched`, `not_found`, `ambiguous`, `no_poster`, `error`, `pending` durumları görülebilir. Hata/eksik yapılandırmada sıfır dışı çıkış kodu üretir. Dilerseniz sunucunuzun cron görevine ekleyebilirsiniz; normal sitede afişler ziyaretle otomatik tamamlanır ve yenilenir.
 
 ### Katalog doğruluğu ve kapsam
 
@@ -138,3 +138,78 @@ python3 tests/http_test.py
 ```
 
 Offline fixture testleri: 63 satırlık afiş akışı, ad/yıl doğrulaması, yanlış yıl/başlık, belirsiz sonuçlar, detay doğrulaması, orijinal dil tercihi, bozuk yol/host engelleme, cache hit, süre sonu, metadata değişikliği, API hatası/429 bekleme, eşzamanlı arama kilidi, anahtarsız çalışma, veri kaybetmeyen geçiş ve mevcut satırların korunması. HTTP testleri 63 afiş uç noktasını ve hesap/liste işlevlerini tekrar kontrol eder. JS testi CDN yükleme hatasının varsayılan görsele döndüğünü kontrol eder. Canlı arama sonucu ve görsel tasarım kontrolü ayrı doğrulamalardır.
+
+
+## TMDB hata teşhisi ve güvenli yeniden deneme
+
+Önceki sürüm tüm istisnaları tek bir genel `error` durumuna indiriyor, HTTP/cURL ayrıntılarını saklamıyor ve başarısız sonuçları bir saat önbellekte tutuyordu. Bu nedenle eski bir `error` kaydından **orijinal HTTP kodunu geriye dönük çıkarmak mümkün değildir**. Güncellenmiş sürüm bu kayıtları `legacy_error` olarak açıklar; neden uydurmaz. `16 matched / 47 error` sayımı tek başına bağlantı sorunu, kota veya eşleşme sorununun kanıtı değildir.
+
+### Kurtarma (mevcut veritabanını koruyarak)
+
+Aynı `APP_DB_PATH`, PHP curl ve TMDB ortam değişkenleriyle:
+
+```sh
+php bin/sync-posters.php --retry-errors
+```
+
+Bu seçenek yalnızca hata önbelleğini yeniden denemeye açar. Geçerli `matched` kayıtlarını yeniden aramaz; filmleri, kullanıcıları, parola hashlerini ve kişisel listeleri silmez. Veritabanını silmeyin ve tekrar seed ederek sorunu çözmeye çalışmayın. Şema geçişi yalnızca afiş önbelleğine `last_error` ve `match_reason` sütunlarını ekler; önceki afiş verileri de korunur.
+
+Tek filmi incelemek veya makinece okunabilir rapor almak için:
+
+```sh
+php bin/sync-posters.php --retry-errors --movie=34
+php bin/sync-posters.php --retry-errors --json > var/tmdb-report.json
+```
+
+JSON modunda ilerleme/bekleme mesajları stderr'e, sonuç raporu stdout'a gider. `var/` git dışında kalır ve web kökünün dışındadır. Hata varsa çıkış kodu `1`, yanlış seçenek/olmayan filmde `2` döner; bu, JSON raporunun geçersiz olduğu anlamına gelmez. CLI yalnızca poster arama/önbellek işlemini çalıştırır; eksik kataloğu kendiliğinden seed etmez.
+
+Her satırda durum, cache/lookup bilgisi, HTTP kodu, TMDB uygulama hata kodu, cURL numarası, deneme sayısı, güvenli endpoint adı, arındırılmış hata mesajı ve sonraki deneme zamanı raporlanır. `http=0`, HTTP yanıtı alınamadığını gösterir; HTTP durum kodu değildir. `attempts`, **hata veren tek API çağrısının** deneme sayısıdır; filmin tüm arama isteklerinin toplamı değildir. Rapor saatleri açık UTC ofsetiyle ISO 8601 biçimindedir. Geçerli eski afiş bir yenileme hatası sırasında korunursa `matched` ile birlikte hata uyarısı gösterilir ve işlem sıfır dışı çıkar.
+
+Aşağıdaki örnek sentetiktir; kullanıcının geçmiş çalıştırmasından alınmamıştır:
+
+```text
+17 | Dövüş Kulübü (1999) | error | lookup | timeout http=0 tmdb=0 curl=28 attempts=3 endpoint=search/movie | Operation timed out | retry_at=...
+```
+
+| Teşhis | Anlamı / yapılacak kontrol |
+| --- | --- |
+| `http=401/403`, `authentication_error` | Token/erişim reddedildi; sunucudaki ortam değişkenini ve TMDB hesabının erişimini kontrol edin. Anahtarı rapora yapıştırmayın. |
+| `http=429`, `rate_limited` | TMDB sınırı; `Retry-After` süresi dolmadan istek yapılmaz. |
+| `http=500/502/503/504` | Geçici API/sunucu hatası; sınırlı yeniden deneme yapılır. |
+| `curl=6` | DNS çözümleme sorunu. |
+| `curl=7` | TMDB sunucusuna bağlantı kurulamıyor. Ağ/proxy/erişim iznini kontrol edin. |
+| `curl=28`, `timeout` | Bağlantı/yanıt süresi doldu. CLI'da bağlantı 5, toplam istek 15 saniyedir. |
+| `curl=60` | TLS sertifika/CA doğrulaması başarısız; PHP'nin CA yapılandırmasını düzeltin. TLS doğrulamasını kapatmayın. |
+| `invalid_json` / `invalid_response` | API/geçit yanıtı beklenen JSON/şemada değil; film bulunamaması olarak sayılmaz. |
+| `internal_error` | PHP/deployment hatası; arındırılmış istisna türü ve mesajı raporda görünür. |
+| `not_found` | Başarılı aramada aday yok veya hiçbir adayın adı/yılı detaylarda doğrulanmadı; API hatası değildir. |
+| `ambiguous` | Birden fazla doğrulanmış film veya güvenle tüketilemeyen aday sayısı; afiş atanmaz. |
+
+Token, API anahtarı, Authorization başlığı, istek URL'si ve ham yanıt gövdesi loglanmaz. TMDB'nin `status_message` alanı ve cURL hata metni önce bilinen sırlar, URL'ler, Bearer/API-key desenleri ve terminal kontrol karakterlerinden arındırılır. Cache ve CLI JSON çıktısı aynı güvenli teşhisi kullanır. Eski sürümden ayrıntısı olmayan kayıtlar ilk yeniden denemede gerçek teşhis kazanır.
+
+### Yeniden deneme ve eşleştirme davranışı
+
+- Her API çağrısı en fazla **3 kez** denenir. Geçici bağlantı hataları, 408/425 ve geçici 5xx yanıtlarında üstel bekleme ve küçük jitter uygulanır. 401/403/404/422 gibi kalıcı hatalar körlemesine tekrarlanmaz. TLS sertifika hataları yeniden deneme veya güvenliği kapatma ile gizlenmez.
+- `Retry-After` hem saniye hem HTTP tarih biçiminde okunur. İstek bütçesine sığmayan uzun bekleme kısaltılmaz; servis genelinde cooldown kaydedilir. Kimlik doğrulama hatasında 1 saat beklenir; ortam değişkenindeki credential gerçekten değişirse bu engel kaldırılabilir. Sadece credential'ın tek yönlü özeti saklanır, kendisi saklanmaz.
+- CLI uzun `429` beklemelerinde varsayılan olarak toplam 120 saniyelik ek bekleme bütçesiyle otomatik bekleyip devam eder. `--max-wait=0` beklemeden raporlar; `--max-wait=600` toplam bütçeyi artırır. HTTP çağrılarının kendi kısa backoff'ları bu ek bütçeden ayrıdır. Bütçe yetmezse `deferred_by_service_cooldown` ve `retry_at` gösterilir; henüz denenmemiş filmler yanlış biçimde `not_found` sayılmaz. Eski sürümün ayrıntısız `cooldown=1` kaydı yalnızca açık `--retry-errors` ile bir kez yeniden yoklanır.
+- Her PHP süreci API çağrılarını en fazla yaklaşık 4 istek/saniyeye yayar; farklı işçiler TMDB `429` yanıtında ortak SQLite cooldown'ını kullanır. Bu sayı TMDB'nin garantili kotası olarak sunulmaz.
+- Türkçe ve İngilizce arama yanıtları, orijinal ad/takma adlar ve her sorguda en fazla 3 sayfa incelenir. Aynı yıl içindeki adaylar, arama kartında Türkçe ad görünmese bile detay/alternatif ad kontrolüne ulaşır. En fazla 8 adayın detayları incelenir; sınır aşılırsa rastgele seçim yapılmaz.
+- Bir afişin kaydedilmesi için detay kimliği, **tam yıl** ve normalize edilmiş orijinal/Türkçe/alternatif adlardan biri doğrulanmalıdır. Popülerlik veya yaklaşık isim benzerliği tek başına yeterli değildir. İki doğrulanmış aday varsa `ambiguous`; detayları kaldırılmış bir film (404) veya doğrulanmayan ad/yıl `not_found` olur. Başarılı eşleşmede bile afiş yoksa `no_poster` kullanılır.
+- Kaynak verilerdeki `Evdeki Düşman` ve `Başka Bir Sen` çelişkileri otomatik düzeltilmez. 63/63 sayısını elde etmek için yanlış film veya farklı yıl kabul edilmez.
+
+Ek test:
+
+```sh
+php tests/tmdb-http.php
+```
+
+Bu test gerçek HTTP sınıflandırma/backoff kodunu kontrollü taşıma yanıtlarıyla çalıştırır: timeout→başarı, 5xx→başarı, kalıcı 4xx, üç kez başarısız deneme, kısa/uzun/tarih biçimli Retry-After, hatalı JSON, boyut sınırı ve token redaksiyonu. Afiş testleri alternatif adlar, iki dil, sayfalama, 16 matched/47 eski error cache'inden **yalnızca 47 hatayı** yeniden deneme, uzun rate-limit beklemesinden devam etme ve veri kaybetmeyen sütun geçişini de doğrular. Bunlar canlı TMDB üzerinde 63 filmin eşleştiği iddiası değildir.
+
+
+CLI'nin kendisini de izole bir SQLite dosyasıyla sınamak için:
+
+```sh
+python3 tests/sync_cli_test.py
+```
+
+Bu test gerçek `bin/sync-posters.php` komutunu başlatır; 16/47 cache sayımını, HTTP teşhislerini, JSON/text çıktısını, token gizlemeyi, seçenekleri ve mevcut parola/listelerin değişmediğini kontrol eder. Native PHP gerektirir; bazı WebAssembly CLI sarmalayıcıları PHP'nin sıfır dışı çıkış kodunu host sürecine aktarmadığından bu kontrol GitHub Actions'taki native PHP'de esas alınır.

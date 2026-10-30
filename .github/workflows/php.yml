@@ -18,6 +18,10 @@ jobs:
         run: php tests/domain.php
       - name: Poster integration tests (offline fixtures)
         run: php tests/posters.php
+      - name: TMDB HTTP retries and safe diagnostics
+        run: php tests/tmdb-http.php
+      - name: Actual synchronization CLI
+        run: python3 tests/sync_cli_test.py
       - name: HTTP integration tests
         run: python3 tests/http_test.py
       - name: Poster image failure handler

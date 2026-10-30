@@ -10,7 +10,9 @@ CREATE TABLE IF NOT EXISTS movie_posters (
     checked_at INTEGER,
     image_base TEXT,
     card_size TEXT,
-    detail_size TEXT
+    detail_size TEXT,
+    last_error TEXT,
+    match_reason TEXT
 );
 CREATE TABLE IF NOT EXISTS poster_service (
     name TEXT PRIMARY KEY,
