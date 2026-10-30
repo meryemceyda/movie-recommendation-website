@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__ . '/poster-migrations.php';
 
 function database(): PDO
 {
@@ -20,6 +21,7 @@ function database(): PDO
     $db->exec('PRAGMA busy_timeout = 5000');
     // Safe for already populated databases: add poster cache tables only.
     $db->exec(file_get_contents(__DIR__ . '/poster-schema.sql'));
+    migrate_poster_diagnostics($db);
     return $db;
 }
 
