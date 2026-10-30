@@ -2,11 +2,11 @@
 declare(strict_types=1);
 
 /** Wait for server-directed rate-limit cooldown within a total CLI wait budget. */
-function sync_one_poster(PDO $db, array $movie, bool $retryErrors, int &$waitBudget, ?callable $request = null, ?callable $clock = null, ?callable $sleep = null, ?callable $progress = null): array
+function sync_one_poster(PDO $db, array $movie, bool $retryErrors, int &$waitBudget, ?callable $request = null, ?callable $clock = null, ?callable $sleep = null, ?callable $progress = null, bool $retryUnmatched = false): array
 {
     $sleep ??= static fn(int $seconds) => sleep($seconds);
     for ($round = 0; $round < 4; $round++) {
-        $result = movie_poster($db, $movie, $request, $clock ? (int) $clock() : null, $retryErrors);
+        $result = movie_poster($db, $movie, $request, $clock ? (int) $clock() : null, $retryErrors, $retryUnmatched);
         $report = poster_report($movie, $result);
         if (($report['error']['kind'] ?? '') !== 'rate_limited') return $result;
         $now = $clock ? (int) $clock() : time();

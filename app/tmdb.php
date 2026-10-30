@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 require_once __DIR__ . "/tmdb-http.php";
+require_once __DIR__ . '/poster-identity.php';
 
 function poster_normalize(string $title): string
 {
@@ -51,6 +52,8 @@ function choose_original_poster(array $details): ?string
 
 function resolve_tmdb_poster(array $movie, callable $request): array
 {
+    $identity = reviewed_poster_identity($movie);
+    if ($identity !== null) return resolve_reviewed_poster($movie, $identity, $request);
     $queries = poster_queries($movie);
     $candidates = [];
     $truncated = false;

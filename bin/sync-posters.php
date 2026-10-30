@@ -7,21 +7,25 @@ require dirname(__DIR__) . '/app/poster-sync.php';
 
 $json = false;
 $retryErrors = false;
+$retryUnmatched = false;
+$listUnresolved = false;
 $movieId = null;
 $waitBudget = 120;
 foreach (array_slice($argv, 1) as $argument) {
     if ($argument === '--help') {
-        echo "Usage: php bin/sync-posters.php [--retry-errors] [--movie=ID] [--json] [--max-wait=0..600]\n";
+        echo "Usage: php bin/sync-posters.php [--retry-errors|--retry-unmatched|--unresolved] [--movie=ID] [--json] [--max-wait=0..600]\n";
         echo "Retry failed poster lookups without deleting movie/account/list data. Rate-limit cooldowns remain active.\n";
         exit(0);
     }
     if ($argument === '--json') $json = true;
     elseif ($argument === '--retry-errors') $retryErrors = true;
+    elseif ($argument === '--retry-unmatched') $retryUnmatched = true;
+    elseif ($argument === '--unresolved') $listUnresolved = true;
     elseif (preg_match('/^--max-wait=([0-9]{1,3})$/D', $argument, $match) && (int) $match[1] <= 600) $waitBudget = (int) $match[1];
     elseif (preg_match('/^--movie=([1-9][0-9]*)$/D', $argument, $match) && filter_var($match[1], FILTER_VALIDATE_INT)) $movieId = (int) $match[1];
     else { fwrite(STDERR, "Invalid option. Use --help.\n"); exit(2); }
 }
-if (!tmdb_configured() || !extension_loaded('curl')) {
+if (!$listUnresolved && (!tmdb_configured() || !extension_loaded('curl'))) {
     fwrite(STDERR, "TMDB_READ_ACCESS_TOKEN (or TMDB_API_KEY) and PHP curl extension are required.\n");
     exit(1);
 }
@@ -36,7 +40,12 @@ try {
     $errors = false;
     foreach ($movies as $movie) {
         $before = poster_cached($db, (int) $movie['id']);
-        $poster = sync_one_poster($db, $movie, $retryErrors, $waitBudget, progress: static fn($message) => fwrite(STDERR, $message . "\n"));
+        if ($listUnresolved && ($before['status'] ?? '') === 'matched') continue;
+        if ($listUnresolved || ($retryUnmatched && ($before['status'] ?? '') === 'matched')) {
+            $poster = $before ?? ['status' => 'pending'];
+        } else {
+            $poster = sync_one_poster($db, $movie, $retryErrors, $waitBudget, progress: static fn($message) => fwrite(STDERR, $message . "\n"), retryUnmatched: $retryUnmatched);
+        }
         $report = poster_report($movie, $poster, $before === $poster);
         $counts[$report['status']] = ($counts[$report['status']] ?? 0) + 1;
         $errors = $errors || $report['error'] !== null || in_array($report['status'], ['error', 'pending', 'unconfigured'], true);

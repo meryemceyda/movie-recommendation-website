@@ -213,3 +213,31 @@ python3 tests/sync_cli_test.py
 ```
 
 Bu test gerçek `bin/sync-posters.php` komutunu başlatır; 16/47 cache sayımını, HTTP teşhislerini, JSON/text çıktısını, token gizlemeyi, seçenekleri ve mevcut parola/listelerin değişmediğini kontrol eder. Native PHP gerektirir; bazı WebAssembly CLI sarmalayıcıları PHP'nin sıfır dışı çıkış kodunu host sürecine aktarmadığından bu kontrol GitHub Actions'taki native PHP'de esas alınır.
+
+## Doğrulanmış kimliklerle kalan afişleri tamamlama (Windows CMD)
+
+Bu sürüm kalan kayıtları yeniden denerken mevcut `matched` önbellek satırlarını **süreleri dolmuş olsa bile değiştirmeyen** bir mod ekler. Film kayıtları, hesaplar, parola hashleri ve kişisel listeler değiştirilmez. Veritabanı dosyasını silmeyin veya yeniden seed etmeyin.
+
+Projenin mevcut klasöründe, aynı `APP_DB_PATH` ve TMDB ortam değişkenleriyle Windows **CMD** komutları:
+
+```bat
+git fetch origin
+git switch fix/reviewed-poster-identities
+php bin/sync-posters.php --unresolved
+php bin/sync-posters.php --retry-unmatched --max-wait=600
+php bin/sync-posters.php --unresolved --json > var\unresolved-posters.json
+```
+
+`--unresolved` API çağrısı yapmaz ve token gerektirmez; o bilgisayarın SQLite dosyasındaki gerçek kalan film adlarını, kimliklerini, yıllarını ve nedenlerini listeler. `--retry-unmatched`, önbellekteki `ambiguous`, `not_found`, `no_poster`, `error` veya eksik kayıtları yeniden dener; `matched` satırlarını aynen korur. Normal eski senkronizasyon komutunun süresi dolan başarılı kayıtları yenileme davranışı değişmemiştir; mevcut 54 eşleşmeyi sabitlemek için yukarıdaki özel modu kullanın. `--unresolved` ile `--retry-unmatched` birlikte verilirse salt okunur listeleme önceliklidir.
+
+Mevcut CMD oturumunda token tanımlı değilse PHP'yi başlatan süreç için `TMDB_READ_ACCESS_TOKEN` ortam değişkenini Windows ortam değişkenleri ayarlarından tanımlayıp yeni CMD açın. Tokeni komut çıktısına yazdırmayın, kaynak dosyaya eklemeyin veya raporla paylaşmayın. Mevcut veritabanı yolu özel bir konumdaysa aynı yolu koruyun; örneğin `set "APP_DB_PATH=C:\mevcut-proje\var\app.sqlite"` (yolu kendi gerçek dosyanızla değiştirin). CMD'de PowerShell'in `$env:` sözdizimi kullanılmaz.
+
+### İncelenmiş üç kimlik
+
+[Kimlik incelemesi ve kaynaklar](docs/reviewed-poster-identities.md) belgesinde ayrıntılar vardır. `app/poster-identities.php` afiş URL'si veya token içermez; yalnızca resmi TMDB sayfası doğrulanmış kimlikler ve beklenen film bilgilerini tutar. Film adı/yılı bu kayda uyarsa arama belirsizliği yerine doğrudan film detayı alınır. Afiş, API yanıtında kimlik, ad, yönetmen, beklenen oyuncular ve yıl doğrulanınca normal SQLite afiş önbelleğine yazılır. Kontrol başarısızsa `not_found`/`error` kalır; ID'nin listede bulunması tek başına yeterli değildir.
+
+Terrifier'ın katalog yılı 2016, TMDB ana gösterim yılı 2018'dir. Yalnızca bu incelenmiş kimlik için TMDB `release_dates` verisinde **ABD 2016 Premiere (type=1)** de doğrulanırsa 2016 kabul edilir. Film tablosundaki yıl değiştirilmez; genel eşleştirmede yıl toleransı açılmaz. Yanıt bu kanıtı içermiyorsa kayıt zorla eşleştirilmez.
+
+Bu ortam kullanıcının yerel afiş önbelleğini veya TMDB API anahtarını içermez. Bu nedenle 54/5/4 sayımı burada tekrar doğrulanmış değildir ve kalan dokuz filmin tamamının adları bilinmemektedir. Üç özel kimlik kamuya açık resmi sayfalardan doğrulanmıştır; diğer altı kayıt için `--unresolved` çıktısı gerekir. **63/63 canlı başarı iddiası yoktur.** Varsayılan görsel başarı sayılmaz.
+
+Ek test: `php tests/reviewed-posters.php`. Kontrollü yanıtlarla kimlik/ad/yıl/oyuncu hatalarının reddedilmesi, Terrifier premiere kanıtı ve 54 eşleşmenin tüm sütunları korunarak yalnızca dokuz kaydın yeniden denenmesi kontrol edilir. Fixture başarısı canlı API başarısı değildir.

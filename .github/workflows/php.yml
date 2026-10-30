@@ -20,6 +20,8 @@ jobs:
         run: php tests/posters.php
       - name: TMDB HTTP retries and safe diagnostics
         run: php tests/tmdb-http.php
+      - name: Reviewed identities and preserved successful matches
+        run: php tests/reviewed-posters.php
       - name: Actual synchronization CLI
         run: python3 tests/sync_cli_test.py
       - name: HTTP integration tests
