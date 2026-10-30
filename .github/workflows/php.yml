@@ -10,11 +10,15 @@ jobs:
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
-          extensions: pdo_sqlite
+          extensions: pdo_sqlite, curl
           coverage: none
       - name: PHP syntax
         run: find app bin tests movie-recommendation-website -name '*.php' -print0 | xargs -0 -n1 php -l
       - name: Domain tests
         run: php tests/domain.php
+      - name: Poster integration tests (offline fixtures)
+        run: php tests/posters.php
       - name: HTTP integration tests
         run: python3 tests/http_test.py
+      - name: Poster image failure handler
+        run: node tests/posters-js.cjs

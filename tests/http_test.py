@@ -38,6 +38,22 @@ def run(base):
     alice, bob, guest = Client(base), Client(base), Client(base)
     status, html, _ = guest.request("?all=1")
     assert status == 200 and "63 film" in html
+    assert html.count('movie-poster-card') == 63, 'Every film needs a poster element'
+    assert 'posters.js' in html and 'assets/tmdb-logo.svg' in html
+    assert 'This product uses the TMDB API but is not endorsed or certified by TMDB.' in html
+    assert 'movie-poster-detail' in guest.request('?id=1')[1]
+    class NoRedirect(urllib.request.HTTPRedirectHandler):
+        def redirect_request(self, *args, **kwargs):
+            return None
+    images = urllib.request.build_opener(NoRedirect())
+    for movie_id in range(1, 64):
+        try:
+            images.open(base + f'/poster.php?id={movie_id}', timeout=10)
+            raise AssertionError('Poster endpoint must redirect')
+        except urllib.error.HTTPError as response:
+            assert response.code == 302 and response.headers['Location'] == 'assets/poster-placeholder.svg'
+            assert 'ncfilm_session' not in response.headers.get('Set-Cookie', '')
+    assert guest.opener.open(base + '/assets/poster-placeholder.svg').headers['Content-Type'].startswith('image/svg+xml')
     assert "6 film" in guest.request()[1]
     assert guest.request("?id=99999")[0] == 404
     assert guest.request("?id[]=1")[0] == 404
@@ -93,6 +109,8 @@ def run(base):
 if __name__ == "__main__":
     with tempfile.TemporaryDirectory() as temp:
         environment = dict(os.environ, APP_DB_PATH=str(Path(temp) / "test.sqlite"))
+        environment.pop('TMDB_READ_ACCESS_TOKEN', None)
+        environment.pop('TMDB_API_KEY', None)
         subprocess.run(["php", "bin/init-db.php"], cwd=ROOT, env=environment, check=True)
         with socket.socket() as sock:
             sock.bind(("127.0.0.1", 0))

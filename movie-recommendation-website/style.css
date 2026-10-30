@@ -256,3 +256,20 @@ label { display:block; font-weight:700; margin-bottom:6px; }
 button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible { outline:3px solid #73113e; outline-offset:3px; }
 @media(max-width:600px) { .topbar-inner { align-items:flex-start; } .actions form, .actions button { width:100%; } }
 @media(prefers-reduced-motion:reduce) { * { animation:none!important; transition:none!important; } }
+
+/* Preserve the complete artwork in a fixed 2:3 frame. No cropping/stretching. */
+.movie-poster {
+  display:block;
+  aspect-ratio:2 / 3;
+  object-fit:contain;
+  object-position:center;
+  background:#f4d9e2;
+  border:1px solid #ce92a8;
+  border-radius:12px;
+}
+.movie-poster-card { width:100%; height:auto; }
+.movie-poster-detail { width:min(100%, 420px); height:auto; margin:18px auto 24px; }
+.film-karti h2 { font-size:18px; margin:8px 0; overflow-wrap:anywhere; }
+.credits { border-top:1px solid #ce92a8; padding-top:20px; font-size:13px; }
+.credits h2 { font-size:15px; }
+.tmdb-logo { display:block; width:100px; height:auto; max-width:100%; }

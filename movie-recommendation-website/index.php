@@ -117,6 +117,7 @@ function list_actions(int $movieId, array $memberships, string $returnList = '')
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><?= e($title) ?> · NCFilm</title>
   <link rel="stylesheet" href="style.css">
+  <script src="posters.js" defer></script>
 </head>
 <body>
 <header class="topbar"><div class="topbar-inner">
@@ -158,7 +159,7 @@ function list_actions(int $movieId, array $memberships, string $returnList = '')
   <?php elseif ($movie): ?>
     <section class="card">
       <h1 class="detay-baslik"><?= e($movie['title']) ?></h1>
-      <?php if (is_file(__DIR__ . '/posters/' . $movie['id'] . '.jpg')): ?><img class="detail-poster" src="posters/<?= (int) $movie['id'] ?>.jpg" alt="<?= e($movie['title']) ?> afişi"><?php endif; ?>
+      <?php render_poster($movie, true); ?>
       <p><strong>Yıl:</strong> <?= (int) $movie['year'] ?></p>
       <p><strong>Kategoriler:</strong> <?= e(movie_genres($db, (int) $movie['id'])) ?></p>
       <p><strong>Başrol:</strong> <?= e($movie['cast_names']) ?></p>
@@ -195,7 +196,7 @@ function list_actions(int $movieId, array $memberships, string $returnList = '')
       <div class="grid">
       <?php foreach ($movies as $item): ?>
         <article class="film-karti">
-          <?php if (is_file(__DIR__ . '/posters/' . $item['id'] . '.jpg')): ?><img class="afis" src="posters/<?= (int) $item['id'] ?>.jpg" alt="<?= e($item['title']) ?> afişi" loading="lazy"><?php else: ?><div class="poster-placeholder" aria-hidden="true">Afiş yok</div><?php endif; ?>
+          <?php render_poster($item); ?>
           <h2><?= e($item['title']) ?></h2>
           <p><?= (int) $item['year'] ?> · <?= e(movie_genres($db, (int) $item['id'])) ?></p>
           <?php if (isset($memberships[(int) $item['id']])): ?><p><?= e(implode(' · ', array_map(fn($key) => LISTS[$key], array_keys($memberships[(int) $item['id']])))) ?></p><?php endif; ?>
@@ -207,5 +208,11 @@ function list_actions(int $movieId, array $memberships, string $returnList = '')
     </section>
   <?php endif; ?>
 </main>
+<footer class="container credits" aria-labelledby="credits-title">
+  <h2 id="credits-title">Kaynaklar ve atıf</h2>
+  <a href="https://www.themoviedb.org" rel="noreferrer"><img class="tmdb-logo" src="assets/tmdb-logo.svg" width="100" height="13" alt="TMDB — The Movie Database"></a>
+  <p>Film afişlerinin kaynağı TMDB'dir. Görsellerin hakları ilgili hak sahiplerine aittir.</p>
+  <p lang="en">This product uses the TMDB API but is not endorsed or certified by TMDB.</p>
+</footer>
 </body>
 </html>

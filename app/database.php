@@ -18,6 +18,8 @@ function database(): PDO
     ]);
     $db->exec('PRAGMA foreign_keys = ON');
     $db->exec('PRAGMA busy_timeout = 5000');
+    // Safe for already populated databases: add poster cache tables only.
+    $db->exec(file_get_contents(__DIR__ . '/poster-schema.sql'));
     return $db;
 }
 
