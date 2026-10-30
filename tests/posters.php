@@ -10,6 +10,13 @@ function verify(bool $condition, string $message): void
 {
     if (!$condition) throw new RuntimeException($message);
 }
+function fixture_movie(array $movie): array
+{
+    $identity = reviewed_poster_identity($movie);
+    $fake = ['id' => $identity['tmdb_id'] ?? 10000 + $movie['id'], 'title' => $identity['titles'][0] ?? $movie['title'], 'original_title' => $identity['titles'][0] ?? $movie['title'], 'release_date' => $movie['year'] . '-01-01', 'poster_path' => '/fixturePoster.jpg', 'original_language' => 'en'];
+    if ($identity) $fake['credits'] = ['cast' => array_map(fn($name) => ['name' => $name], $identity['cast']), 'crew' => [['name' => $identity['director'], 'job' => 'Director']]];
+    return $fake;
+}
 $db = database();
 initialize_database($db);
 $db->exec("INSERT INTO users (name, email, password_hash) VALUES ('Existing user', 'existing@example.com', 'existing-hash')");
@@ -127,7 +134,7 @@ verify(movie_poster($db, $movie, null, 4001)['status'] === 'unconfigured', 'Miss
 
 // Exercise every catalog row with offline fixtures; not a claim of live TMDB coverage.
 foreach ($db->query('SELECT * FROM movies ORDER BY id')->fetchAll() as $catalogMovie) {
-    $fake = ['id' => 10000 + $catalogMovie['id'], 'title' => $catalogMovie['title'], 'original_title' => $catalogMovie['title'], 'release_date' => $catalogMovie['year'] . '-01-01', 'poster_path' => '/fixturePoster.jpg', 'original_language' => 'tr'];
+    $fake = fixture_movie($catalogMovie);
     $fixture = static fn($path) => $path === 'search/movie' ? ['results' => [$fake]] : ($path === 'configuration' ? $configuration : $fake);
     verify(movie_poster($db, $catalogMovie, $fixture, 5000)['status'] === 'matched', 'Catalog row failed poster pipeline.');
 }
@@ -147,7 +154,7 @@ verify($db->query('SELECT ' . implode(',', $oldColumns) . ' FROM movie_posters O
 $recovered = 0;
 $apiMovies = [];
 foreach ($db->query('SELECT * FROM movies ORDER BY id')->fetchAll() as $catalogMovie) {
-    $fake = ['id' => 10000 + $catalogMovie['id'], 'title' => $catalogMovie['title'], 'original_title' => $catalogMovie['title'], 'release_date' => $catalogMovie['year'] . '-01-01', 'poster_path' => '/fixturePoster.jpg'];
+    $fake = fixture_movie($catalogMovie);
     $fixture = static function ($path) use ($fake, $configuration, &$apiMovies, $catalogMovie): array {
         $apiMovies[$catalogMovie['id']] = true;
         return $path === 'search/movie' ? ['results' => [$fake]] : ($path === 'configuration' ? $configuration : $fake);

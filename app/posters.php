@@ -45,14 +45,15 @@ function poster_image_config(PDO $db, callable $request, int $now): array
 }
 
 /** Lazy lookup; --retry-errors only bypasses failure-cache TTL, never a rate limit. */
-function movie_poster(PDO $db, array $movie, ?callable $request = null, ?int $clock = null, bool $retryErrors = false): array
+function movie_poster(PDO $db, array $movie, ?callable $request = null, ?int $clock = null, bool $retryErrors = false, bool $retryUnmatched = false): array
 {
     $now = $clock ?? time();
     $id = (int) $movie['id'];
     $key = poster_source_key($movie);
     $cached = poster_cached($db, $id);
+    if ($retryUnmatched && $cached && $cached['status'] === 'matched') return $cached;
     $sameSource = $cached && hash_equals($cached['source_key'], $key);
-    $retryFailure = $retryErrors && $cached && ($cached['status'] === 'error' || !empty($cached['last_error']));
+    $retryFailure = $cached && (($retryErrors && ($cached['status'] === 'error' || !empty($cached['last_error']))) || ($retryUnmatched && $cached['status'] !== 'matched'));
     if ($sameSource && (int) $cached['next_check'] > $now && !$retryFailure) return $cached;
     $fallback = $sameSource ? $cached : ['status' => 'pending'];
     if ($request === null && !tmdb_configured()) return $sameSource ? $cached : ['status' => 'unconfigured'];

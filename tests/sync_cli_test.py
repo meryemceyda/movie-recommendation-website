@@ -47,5 +47,10 @@ foreach ($db->query('SELECT * FROM movies')->fetchAll() as $movie) {
     assert cli('--movie=0').returncode == 2
     assert cli('--max-wait=601').returncode == 2
     assert cli('--help').returncode == 0
+    environment.pop('TMDB_READ_ACCESS_TOKEN', None)
+    unresolved = cli('--unresolved', '--json')
+    assert unresolved.returncode == 1  # Existing API errors are still reported.
+    pending = json.loads(unresolved.stdout)
+    assert len(pending['movies']) == 47 and all(row['status'] != 'matched' for row in pending['movies'])
     assert snapshot() == before, 'CLI changed existing data while reading fresh cache'
 print('Actual sync CLI tests passed (16/47 cached report, HTTP diagnostics, JSON, redaction, options and data preservation).')
