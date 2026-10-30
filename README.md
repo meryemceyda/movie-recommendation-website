@@ -156,7 +156,7 @@ Profiles with at least three distinct Favorites/Watched films are evaluated by h
 
 See [security review and remaining risks](docs/security-review.md) and [engineering assessment](docs/engineering-assessment.md).
 
-Production requires a real PHP web server with TLS. **Only `movie-recommendation-website/` may be the document root**; never serve the repo root. `app/`, `bin/`, `tests/`, `var/`, backups and environment files must remain private. The database-path guard is defense in depth, not a substitute for server configuration. Use maintained PHP, request/body limits, protected log rotation and restricted filesystem access. A reverse proxy must pass trustworthy HTTPS information through server configuration, not client-controlled headers.
+Production requires a real PHP web server with TLS. **Only `movie-recommendation-website/` may be the document root**; never serve the repo root. `app/`, `bin/`, `tests/`, `var/`, backups and environment files must remain private. The database-path guard is defense in depth, not a substitute for server configuration. Use maintained PHP, request/body limits, protected log rotation and restricted filesystem access. Unix umask/mode settings do not replace Windows NTFS ACL configuration; validate permissions on the actual host. A reverse proxy must pass trustworthy HTTPS information through server configuration, not client-controlled headers.
 
 Before deployment, validate certificate/proxy/cookie behavior, external file access, backup restoration, abuse controls and load on the actual host. Those checks have not been performed here. SQLite is suitable for this project's scale; concurrent writes are serialized and operational limits must be measured before scaling.
 
