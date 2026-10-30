@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="500" height="750" viewBox="0 0 500 750">
+  <rect width="500" height="750" fill="#f4d9e2"/>
+  <rect x="125" y="235" width="250" height="190" rx="18" fill="none" stroke="#874461" stroke-width="8"/>
+  <path d="M145 260h25m-25 40h25m-25 40h25m-25 40h25m160-120h25m-25 40h25m-25 40h25m-25 40h25" stroke="#874461" stroke-width="8"/>
+  <path d="m225 285 65 45-65 45z" fill="#874461"/>
+  <text x="250" y="490" text-anchor="middle" font-family="Arial,sans-serif" font-size="28" fill="#613047">Afiş bulunamadı</text>
+  <text x="250" y="530" text-anchor="middle" font-family="Arial,sans-serif" font-size="18" fill="#613047">NCFilm</text>
+</svg>

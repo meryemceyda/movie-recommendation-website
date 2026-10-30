@@ -1,452 +1,170 @@
 <?php
-header("Content-Type: text/html; charset=UTF-8");
+declare(strict_types=1);
+require dirname(__DIR__) . '/app/bootstrap.php';
 
-$seciliKategori = isset($_GET["kategori"]) ? trim($_GET["kategori"]) : "";
-$filmId = isset($_GET["id"]) ? trim($_GET["id"]) : "";
+$db = database();
+$user = current_user($db);
+$state = handle_http_action($db, $user);
+$page = $state['page'];
+$error = $state['error'];
+$email = $state['email'];
+$name = $state['name'];
 
-$detayAcik = ($filmId !== "");
-$listeBaslik = ($seciliKategori === "") ? "Önerilenler" : ($seciliKategori . " Filmleri");
-
-/* ===== filmler.php içeriği (fonksiyonlaştırıldı) ===== */
-function renderFilmListesi() {
-  // filmler.php mantığıyla aynı: önce poster göster kararını al, sonra GET'ten kategori oku
-  global $seciliKategori;
-  $posterGoster = ($seciliKategori === "");
-
-  $seciliKategoriLocal = "";
-  if (isset($_GET["kategori"]) && $_GET["kategori"] !== "") {
-    $seciliKategoriLocal = trim($_GET["kategori"]);
-  }
-
-  $dosyaYolu = __DIR__ . "/filmler.txt";
-  if (!file_exists($dosyaYolu)) {
-    echo "filmler.txt bulunamadı.";
-    exit;
-  }
-
-  $onerilenIDler = ["1", "11", "16", "17", "54", "47"];
-
-  $dosya = fopen($dosyaYolu, "r");
-  if (!$dosya) {
-    echo "Dosya açılamadı.";
-    exit;
-  }
-
-  while (($satir = fgets($dosya)) !== false) {
-    $satir = trim($satir);
-    if ($satir === "") continue;
-
-    $parcalar = explode("|", $satir);
-    if (count($parcalar) < 3) continue;
-
-    $kategori = trim($parcalar[0]);
-    $id       = trim($parcalar[1]);
-    $ad       = trim($parcalar[2]);
-
-    if ($seciliKategoriLocal !== "" && $kategori !== $seciliKategoriLocal) {
-      continue;
-    }
-
-    if ($seciliKategoriLocal === "" && !in_array($id, $onerilenIDler, true)) {
-      continue;
-    }
-
-    echo "<div class='film-karti' data-id='".htmlspecialchars($id, ENT_QUOTES)."'>";
-
-    if ($posterGoster) {
-      $posterYolu = "posters/" . $id . ".jpg";
-      if (file_exists(__DIR__ . "/" . $posterYolu)) {
-        echo "<img src='".htmlspecialchars($posterYolu, ENT_QUOTES)."' class='afis' alt='".htmlspecialchars($ad, ENT_QUOTES)."'>";
-      }
-    }
-
-    echo "<h3>".htmlspecialchars($ad)."</h3>";
-    echo "<p>Kategori: ".htmlspecialchars($kategori)."</p>";
-
-    echo "<form method='get' action='index.php' style='margin:0;'>";
-    if ($seciliKategoriLocal !== "") {
-      echo "<input type='hidden' name='kategori' value='".htmlspecialchars($seciliKategoriLocal, ENT_QUOTES)."'>";
-    }
-    echo "<input type='hidden' name='id' value='".htmlspecialchars($id, ENT_QUOTES)."'>";
-    echo "<button type='submit'>Detay</button>";
-    echo "</form>";
-
-    echo "</div>";
-  }
-
-  fclose($dosya);
+if (!in_array($page, ['catalog', 'lists', 'login', 'register'], true)) {
+    http_response_code(404);
+    exit('Sayfa bulunamadı.');
 }
-
-/* ===== detay.php içeriği (fonksiyonlaştırıldı) ===== */
-function renderFilmDetay($filmId) {
-  if (!isset($_GET["id"]) || trim($_GET["id"]) === "") {
-    echo "Film ID gönderilmedi.";
-    exit;
-  }
-
-  $filmId = trim($filmId);
-
-  $dosyaYolu = __DIR__ . "/detaylar.txt";
-  if (!file_exists($dosyaYolu)) {
-    echo "detaylar.txt bulunamadı.";
-    exit;
-  }
-
-  $dosya = fopen($dosyaYolu, "r");
-  if (!$dosya) {
-    echo "Dosya açılamadı.";
-    exit;
-  }
-
-  $bulundu = false;
-
-  while (($satir = fgets($dosya)) !== false) {
-    $satir = trim($satir);
-    if ($satir === "") continue;
-
-    $parcalar = explode("|", $satir);
-    if (count($parcalar) < 6) continue;
-
-    $id = trim($parcalar[0]);
-    if ($id !== $filmId) continue;
-
-    $ad       = trim($parcalar[1]);
-    $yil      = trim($parcalar[2]);
-    $kategori = trim($parcalar[3]);
-    $basrol   = trim($parcalar[4]);
-    $konu     = trim($parcalar[5]);
-
-    echo "<div class='detay-wrap'>";
-    echo "<h2 class='detay-baslik'>".htmlspecialchars($ad, ENT_QUOTES)."</h2>";
-    echo "</div>";
-
-    echo "<div class='detay'>";
-    echo "<div>";
-    echo "<p><strong>Yıl:</strong> ".htmlspecialchars($yil, ENT_QUOTES)."</p>";
-    echo "<p><strong>Kategori:</strong> ".htmlspecialchars($kategori, ENT_QUOTES)."</p>";
-    echo "<p><strong>Başrol:</strong> ".htmlspecialchars($basrol, ENT_QUOTES)."</p>";
-    echo "<p><strong>Konusu:</strong> ".htmlspecialchars($konu, ENT_QUOTES)."</p>";
-
-    echo "<form method='get' action='index.php' style='margin:0;'>";
-    if (isset($_GET["kategori"]) && trim($_GET["kategori"]) !== "") {
-      echo "<input type='hidden' name='kategori' value='".htmlspecialchars(trim($_GET["kategori"]), ENT_QUOTES)."'>";
-    }
-    echo "<button type='submit'>Listeye Dön</button>";
-    echo "</form>";
-
-    echo "</div>";
-    echo "</div>";
-
-    $bulundu = true;
-    break;
-  }
-
-  fclose($dosya);
-
-  if (!$bulundu) {
-    echo "Film detayları bulunamadı.";
-  }
+if ($page === 'lists' && !$user) {
+    flash('Listelerinizi görmek için giriş yapın.');
+    redirect('page=login');
 }
+if (($page === 'login' || $page === 'register') && $user) redirect('page=lists');
+
+$list = $page === 'lists' ? (input($_GET, 'list') ?: 'watchlist') : '';
+if ($list !== '' && !isset(LISTS[$list])) {
+    http_response_code(400);
+    exit('Geçersiz liste.');
+}
+$genre = trim(input($_GET, 'kategori'));
+$search = substr(trim(input($_GET, 'q')), 0, 200);
+$all = input($_GET, 'all') === '1';
+$genres = $db->query('SELECT name FROM genres ORDER BY name')->fetchAll(PDO::FETCH_COLUMN);
+$movie = null;
+$notFound = false;
+if (array_key_exists('id', $_GET)) {
+    $id = filter_var(input($_GET, 'id'), FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+    $movie = $id ? find_movie($db, $id) : null;
+    if (!$movie) {
+        http_response_code(404);
+        $notFound = true;
+    }
+}
+$featured = $page === 'catalog' && !$all && $genre === '' && $search === '';
+$movies = [];
+if (($page === 'catalog' || $page === 'lists') && !$movie && !$notFound) {
+    $movies = $featured ? recommendations_for_user($db, $user ? (int)$user['id'] : null)
+        : list_movies($db, $user ? (int)$user['id'] : null, $list, $genre, $search, false);
+}
+$memberships = [];
+if ($user) {
+    $statement = $db->prepare('SELECT movie_id, list FROM user_movies WHERE user_id = ?');
+    $statement->execute([$user['id']]);
+    foreach ($statement as $entry) $memberships[(int) $entry['movie_id']][$entry['list']] = true;
+}
+$notice = $_SESSION['flash'] ?? '';
+unset($_SESSION['flash']);
+$title = $movie ? $movie['title'] : match ($page) {
+    'login' => 'Giriş yap',
+    'register' => 'Hesap oluştur',
+    'lists' => LISTS[$list],
+    default => $featured ? 'Önerilenler' : 'Filmler',
+};
+
 ?>
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>NCFilm</title>
-
-  <!-- style.css gömüldü -->
-  <style>
-    :root{
-      --bg: #f4b6c2;
-      --bg2:#f7c9d3;
-      --title:#b30059;
-      --brand:#7a1fa2;
-      --text:#ffffff;
-      --btn:#c2185b;
-      --btn2:#a3124a;
-      --line: rgba(255,255,255,.35);
-    }
-
-    *{box-sizing:border-box}
-    body{
-      margin:0;
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-      background: #f4b6c2;
-      color: #ffffff;
-    }
-
-    .topbar{
-      position: sticky;
-      top:0;
-      z-index: 10;
-      background: rgba(240,138,160,.55);
-      backdrop-filter: blur(10px);
-      border-bottom: 1px solid var(--line);
-    }
-    .topbar-inner{
-      width: min(1100px, 92%);
-      margin: 0 auto;
-      padding: 14px 0;
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap: 12px;
-    }
-    .brand{
-      font-size: 30px;
-      font-weight: 800;
-      letter-spacing: 2px;
-      background: linear-gradient(90deg, #7a1fa2, #c2185b);
-
-      background-clip: text;
-      -webkit-background-clip: text;
-      color: transparent;
-      -webkit-text-fill-color: transparent;
-      transition: transform .2s ease;
-      margin-left: -90px;
-    }
-
-    .kategori select {
-      box-shadow: 0 4px 10px rgba(0,0,0,0.15);
-    }
-
-    .kategori{
-      display:flex;
-      align-items:center;
-      gap: 10px;
-    }
-    .kategori-label{
-      font-weight: 700;
-      color: var(--text);
-    }
-    select{
-      border: 1px solid var(--line);
-      background: rgba(255,255,255,.20);
-      color: #fff;
-      padding: 10px 14px;
-      border-radius: 999px;
-      outline: none;
-    }
-    select option{ color:#222; }
-    select:focus{
-      box-shadow: 0 0 0 3px rgba(195,24,91,.25);
-    }
-
-    .container{
-      width: min(1100px, 92%);
-      margin: 18px auto 40px;
-    }
-
-    .card{
-      background: linear-gradient(180deg, rgba(240,138,160,.60), rgba(240,138,160,.42));
-      border: 1px solid var(--line);
-      border-radius: 22px;
-      padding: 16px;
-      box-shadow: 0 20px 45px rgba(98, 0, 38, .18);
-    }
-
-    .section-title{
-      margin: 2px 0 14px;
-      color: var(--title);
-      font-size: 20px;
-      font-weight: 900;
-      letter-spacing: .2px;
-    }
-
-    .grid{
-      display:grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 14px;
-    }
-    @media (max-width: 900px){
-      .grid{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    }
-    @media (max-width: 600px){
-      .grid{ grid-template-columns: 1fr; }
-    }
-
-    .film-karti{
-      background: linear-gradient(180deg, rgba(243,154,176,.65), rgba(243,154,176,.40));
-      border: 1px solid var(--line);
-      border-radius: 22px;
-      padding: 12px;
-      display:flex;
-      flex-direction:column;
-      gap: 8px;
-      transition: transform .15s ease, filter .15s ease;
-    }
-    .film-karti:hover{
-      transform: translateY(-2px);
-      filter: brightness(1.03);
-    }
-    .film-karti h3{
-      margin: 6px 0 0;
-      font-size: 16px;
-      font-weight: 800;
-      color: #fff;
-    }
-    .film-karti p{
-      margin: 0;
-      font-size: 13px;
-      opacity: .95;
-    }
-
-    .film-karti form { width: 100%; }
-    .film-karti button { width: 100%; padding: 12px 0; }
-
-    .afis{
-      width: 100%;
-      height: auto;
-      max-height: 260px;
-      object-fit: contain;
-    }
-
-    button{
-      border: none;
-      background: linear-gradient(180deg, var(--btn), var(--btn2));
-      color: #fff;
-      padding: 10px 14px;
-      border-radius: 999px;
-      font-weight: 800;
-      letter-spacing: .2px;
-      cursor: pointer;
-      box-shadow: 0 10px 18px rgba(98,0,38,.20);
-    }
-    button:hover{ filter: brightness(1.06); }
-    button:active{ transform: translateY(1px); }
-
-    .detay-wrap{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap: 10px;
-      margin-bottom: 12px;
-    }
-    .detay-baslik{
-      margin:0;
-      font-size: 22px;
-      font-weight: 900;
-      color: var(--title);
-    }
-
-    .detay p{
-      max-width: 720px;
-      margin: 8px auto;
-      line-height: 1.4;
-      text-align: left;
-    }
-
-    .detay button{
-      display: block;
-      margin: 18px auto 0;
-    }
-
-    .detay img{
-      max-width: 240px;
-      border-radius: 20px;
-      border: 1px solid var(--line);
-      display:block;
-      margin: 0 auto 12px;
-    }
-
-    .detay strong{ color: var(--title); }
-
-    @media (max-width: 700px){
-      .detay{ grid-template-columns: 1fr; }
-      .detay img{ width: 100% !important; }
-    }
-
-    .kurdele{
-      position: fixed;
-      font-size: 34px;
-      z-index: 1;
-      pointer-events: none;
-      opacity: .9;
-      animation: sallan 4.5s ease-in-out infinite;
-      filter: drop-shadow(0 6px 10px rgba(0,0,0,.25));
-    }
-
-    .k-sol-1{ left: 95px; top: 160px; font-size: 75px; transform-origin: top left; }
-    .k-sol-2{ left: 30px; top: 340px; font-size: 50px; animation-duration: 3.8s; }
-    .k-sol-3{ left: 80px; top: 520px; font-size: 70px; animation-duration: 5.2s; }
-
-    .k-sag-1{ right: 100px; top: 180px; font-size: 70px; transform-origin: top right; }
-    .k-sag-2{ right: 30px; top: 360px; font-size: 55px; animation-duration: 4.1s; }
-    .k-sag-3{ right: 80px; top: 540px; font-size: 75px; animation-duration: 5.6s; }
-
-    @keyframes sallan{
-      0%   { transform: rotate(0deg); }
-      20%  { transform: rotate(6deg); }
-      40%  { transform: rotate(-4deg); }
-      60%  { transform: rotate(7deg); }
-      80%  { transform: rotate(-5deg); }
-      100% { transform: rotate(0deg); }
-    }
-
-    @media (max-width: 700px){
-      .kurdele{ display:none; }
-    }
-  </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><?= e($title) ?> · NCFilm</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="posters.js" defer></script>
 </head>
-
 <body>
-
-<div class="kurdele k-sol-1">🎀</div>
-<div class="kurdele k-sol-2">🎀</div>
-<div class="kurdele k-sol-3">🎀</div>
-
-<div class="kurdele k-sag-1">🎀</div>
-<div class="kurdele k-sag-2">🎀</div>
-<div class="kurdele k-sag-3">🎀</div>
-
-<header class="topbar">
-  <div class="topbar-inner">
-    <div class="brand">NCFilm</div>
-
-    <div class="kategori">
-      <span class="kategori-label">Kategoriler</span>
-
-      <form method="get" action="" style="margin:0;">
-        <select id="kategori" name="kategori" onchange="this.form.submit()">
-          <option value="" <?php echo ($seciliKategori==="" ? "selected" : ""); ?>>Önerilenler</option>
-          <option value="Aksiyon" <?php echo ($seciliKategori==="Aksiyon" ? "selected" : ""); ?>>Aksiyon</option>
-          <option value="Komedi" <?php echo ($seciliKategori==="Komedi" ? "selected" : ""); ?>>Komedi</option>
-          <option value="Dram" <?php echo ($seciliKategori==="Dram" ? "selected" : ""); ?>>Dram</option>
-          <option value="Bilim Kurgu" <?php echo ($seciliKategori==="Bilim Kurgu" ? "selected" : ""); ?>>Bilim Kurgu</option>
-          <option value="Romantik" <?php echo ($seciliKategori==="Romantik" ? "selected" : ""); ?>>Romantik</option>
-          <option value="Korku" <?php echo ($seciliKategori==="Korku" ? "selected" : ""); ?>>Korku</option>
-          <option value="Yerli" <?php echo ($seciliKategori==="Yerli" ? "selected" : ""); ?>>Yerli</option>
-        </select>
-
-        <noscript><button type="submit">Göster</button></noscript>
-      </form>
-    </div>
-  </div>
-</header>
-
+<header class="topbar"><div class="topbar-inner">
+  <a class="brand" href="index.php">NCFilm</a>
+  <nav aria-label="Ana menü">
+    <a href="index.php">Önerilenler</a>
+    <a href="index.php?all=1">Tüm filmler</a>
+    <?php if ($user): ?>
+      <a href="index.php?page=lists">Listelerim</a>
+      <span><?= e($user['name']) ?></span>
+      <form method="post" action="index.php"><?php csrf_field(); ?><input type="hidden" name="action" value="logout"><button>Çıkış</button></form>
+    <?php else: ?>
+      <a href="index.php?page=login">Giriş yap</a><a href="index.php?page=register">Kayıt ol</a>
+    <?php endif; ?>
+  </nav>
+</div></header>
 <main class="container">
+  <?php if ($notice): ?><div class="notice" role="status"><?= e($notice) ?></div><?php endif; ?>
+  <?php if ($error): ?><div class="notice error" role="alert"><?= e($error) ?></div><?php endif; ?>
 
-  <section id="liste-alani" class="card" style="<?php echo $detayAcik ? "display:none;" : ""; ?>">
-    <h2 id="listeBaslik" class="section-title"><?php echo htmlspecialchars($listeBaslik, ENT_QUOTES, "UTF-8"); ?></h2>
-
-    <div id="filmListesi" class="grid">
-      <?php renderFilmListesi(); ?>
-    </div>
-  </section>
-
-  <section id="detay-alani" class="card" style="<?php echo $detayAcik ? "" : "display:none;"; ?>">
-    <h2 class="section-title">Film Detayları</h2>
-    <div id="filmDetay">
-      <?php
-      if ($detayAcik) {
-        renderFilmDetay($filmId);
-      }
-      ?>
-    </div>
-  </section>
-
+  <?php if ($page === 'login' || $page === 'register'): ?>
+    <section class="card auth">
+      <h1 class="section-title"><?= $page === 'register' ? 'Hesap oluştur' : 'Giriş yap' ?></h1>
+      <p>Film listeleriniz yalnızca kendi hesabınızda görünür.</p>
+      <form method="post" action="index.php?page=<?= e($page) ?>">
+        <?php csrf_field(); ?><input type="hidden" name="action" value="<?= e($page) ?>">
+        <?php if ($page === 'register'): ?>
+          <label for="name">Adınız</label><input id="name" name="name" value="<?= e($name) ?>" maxlength="100" autocomplete="name" required>
+        <?php endif; ?>
+        <label for="email">E-posta</label><input id="email" type="email" name="email" value="<?= e($email) ?>" maxlength="254" autocomplete="email" required>
+        <label for="password">Parola</label><input id="password" type="password" name="password" autocomplete="<?= $page === 'register' ? 'new-password' : 'current-password' ?>" <?= $page === 'register' ? 'minlength="15"' : '' ?> maxlength="72" required>
+        <?php if ($page === 'register'): ?><p class="muted">En az 15 karakter, en fazla 72 bayt kullanın. Türkçe karakterler birden fazla bayt yer kaplayabilir.</p><?php endif; ?>
+        <button type="submit"><?= $page === 'register' ? 'Kayıt ol' : 'Giriş yap' ?></button>
+      </form>
+      <p><a href="index.php?page=<?= $page === 'register' ? 'login' : 'register' ?>"><?= $page === 'register' ? 'Zaten hesabım var' : 'Hesap oluştur' ?></a></p>
+    </section>
+  <?php elseif ($notFound): ?>
+    <section class="card"><h1>Film bulunamadı</h1><a href="index.php?all=1">Filmlere dön</a></section>
+  <?php elseif ($movie): ?>
+    <section class="card">
+      <h1 class="detay-baslik"><?= e($movie['title']) ?></h1>
+      <?php render_poster($movie, true); ?>
+      <p><strong>Yıl:</strong> <?= (int) $movie['year'] ?></p>
+      <p><strong>Kategoriler:</strong> <?= e(movie_genres($db, (int) $movie['id'])) ?></p>
+      <p><strong>Başrol:</strong> <?= e($movie['cast_names']) ?></p>
+      <p><strong>Konusu:</strong> <?= e($movie['synopsis']) ?></p>
+      <?php if ($user): ?>
+        <?php list_actions((int) $movie['id'], $memberships, $list); ?>
+        <p class="muted">İzlendi ve İzlenecekler birbirinin yerine geçer. Favoriler bağımsızdır.</p>
+      <?php else: ?>
+        <p><a href="index.php?page=login">Listene eklemek için giriş yap</a></p>
+      <?php endif; ?>
+      <p><a href="index.php?<?= e(http_build_query(['page' => $page, 'list' => $list, 'kategori' => $genre, 'q' => $search, 'all' => $all ? '1' : '0'])) ?>">Listeye dön</a></p>
+    </section>
+  <?php else: ?>
+    <section class="card">
+      <h1 class="section-title"><?= e($title) ?></h1>
+      <?php if ($page === 'lists'): ?>
+        <nav class="tabs" aria-label="Film listeleri">
+        <?php foreach (LISTS as $key => $label): ?><a <?= $list === $key ? 'aria-current="page" class="active"' : '' ?> href="index.php?page=lists&amp;list=<?= e($key) ?>"><?= e($label) ?></a><?php endforeach; ?>
+        </nav>
+      <?php elseif ($featured): ?><p class="muted"><?= $user ? 'Favorilerin ve izleme geçmişine göre öneriler. Tercih verisi yoksa farklı türlerden bir başlangıç seçkisi sunulur.' : 'Farklı türlerden başlangıç önerileri. Kendi önerilerini oluşturmak için giriş yapıp favori veya izlenen film ekle.' ?></p><?php endif; ?>
+      <form class="filters" method="get" action="index.php">
+        <input type="hidden" name="page" value="<?= e($page) ?>">
+        <input type="hidden" name="all" value="1">
+        <?php if ($list): ?><input type="hidden" name="list" value="<?= e($list) ?>"><?php endif; ?>
+        <div><label for="kategori">Kategori</label><select id="kategori" name="kategori"><option value="">Tüm kategoriler</option>
+          <?php foreach ($genres as $option): ?><option value="<?= e($option) ?>" <?= $genre === $option ? 'selected' : '' ?>><?= e($option) ?></option><?php endforeach; ?>
+        </select></div>
+        <div><label for="q">Film adı</label><input id="q" name="q" maxlength="200" value="<?= e($search) ?>" placeholder="Film ara"></div>
+        <button type="submit">Filtrele</button>
+        <a href="index.php?<?= e(http_build_query(['page' => $page, 'list' => $list, 'all' => '1'])) ?>">Temizle</a>
+      </form>
+      <p><?= count($movies) ?> film</p>
+      <?php if (!$movies): ?><p>Bu görünümde film yok. <?php if ($page === 'lists'): ?><a href="index.php?all=1">Katalogdan film ekleyin.</a><?php endif; ?></p><?php endif; ?>
+      <div class="grid">
+      <?php foreach ($movies as $item): ?>
+        <article class="film-karti">
+          <?php render_poster($item); ?>
+          <h2><?= e($item['title']) ?></h2>
+          <?php if (isset($item['recommendation_reason'])): ?><p class="recommendation-reason"><?= e($item['recommendation_reason']) ?></p><?php endif; ?>
+          <p><?= (int) $item['year'] ?> · <?= e(movie_genres($db, (int) $item['id'])) ?></p>
+          <?php if (isset($memberships[(int) $item['id']])): ?><p><?= e(implode(' · ', array_map(fn($key) => LISTS[$key], array_keys($memberships[(int) $item['id']])))) ?></p><?php endif; ?>
+          <a href="index.php?<?= e(http_build_query(['id' => $item['id'], 'page' => $page, 'list' => $list, 'kategori' => $genre, 'q' => $search, 'all' => $all ? '1' : '0'])) ?>">Detay ve liste işlemleri</a>
+          <?php if ($page === 'lists'): list_actions((int) $item['id'], $memberships, $list); endif; ?>
+        </article>
+      <?php endforeach; ?>
+      </div>
+    </section>
+  <?php endif; ?>
 </main>
-
+<footer class="container credits" aria-labelledby="credits-title">
+  <h2 id="credits-title">Kaynaklar ve atıf</h2>
+  <a href="https://www.themoviedb.org" rel="noreferrer"><img class="tmdb-logo" src="assets/tmdb-logo.svg" width="100" height="13" alt="TMDB — The Movie Database"></a>
+  <p>Film afişlerinin kaynağı TMDB'dir. Görsellerin hakları ilgili hak sahiplerine aittir.</p>
+  <p lang="en">This product uses the TMDB API but is not endorsed or certified by TMDB.</p>
+</footer>
 </body>
 </html>

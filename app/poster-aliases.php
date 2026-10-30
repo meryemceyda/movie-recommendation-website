@@ -1,0 +1,38 @@
+<?php
+declare(strict_types=1);
+// Search aliases, not hard-coded TMDB IDs or poster URLs. Year must still match.
+return [
+    'Matrix' => ['The Matrix'],
+    'Bay ve Bayan Smith' => ['Mr. & Mrs. Smith'],
+    'Sherlock Holmes: Gölge Oyunları' => ['Sherlock Holmes: A Game of Shadows'],
+    'G.O.R.A' => ['G.O.R.A.'],
+    'S.D.B.D.A. Veyahut Yan Yana' => ['Yan Yana'],
+    'Esaretin Bedeli' => ['The Shawshank Redemption'],
+    'Prestij' => ['The Prestige'],
+    'Yeşil Yol' => ['The Green Mile'],
+    'Akıl Oyunları' => ['A Beautiful Mind'],
+    'Titanik' => ['Titanic'],
+    'Dövüş Kulübü' => ['Fight Club'],
+    'Başlangıç' => ['Inception'],
+    'Kelebek Etkisi' => ['The Butterfly Effect'],
+    'Açlık Oyunları' => ['The Hunger Games'],
+    'Örümcek-Adam' => ['Spider-Man'],
+    'Öldüren Sis' => ['The Mist'],
+    'Aşk ve Gurur' => ['Pride & Prejudice'],
+    'Not Defteri' => ['The Notebook'],
+    '50 İlk Öpücük' => ['50 First Dates'],
+    'Turist' => ['The Tourist'],
+    'Korku Seansı' => ['The Conjuring'],
+    'Son Durak' => ['Final Destination'],
+    'Testere' => ['Saw'],
+    'Paranormal Aktivite' => ['Paranormal Activity'],
+    // Conflicting source metadata must not silently resolve to Split (2016).
+    'Evdeki Düşman' => ['Orphan'],
+    'Hızlı ve Öfkeli' => ['The Fast and the Furious'],
+    'Evde Tek Başına' => ['Home Alone'],
+    'Godfather' => ['The Godfather'],
+    'Leon' => ['Léon: The Professional', 'Léon'],
+    'Harry Potter ve Felsefe Taşı' => ["Harry Potter and the Philosopher's Stone"],
+    'Senden Önce Ben' => ['Me Before You'],
+    'Terrifer' => ['Terrifier'],
+];
